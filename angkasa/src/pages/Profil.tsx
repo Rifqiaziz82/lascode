@@ -18,18 +18,21 @@ import {
   LogOut,
   X,
   ChevronRight,
+  Instagram,
+  Youtube,
+  Twitch,
 } from "lucide-react";
 import { doc, addDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 
-
-// Mock data (sesuai dengan struktur di kode Anda)
 interface Certificate {
   id: string;
   title: string;
   competition_name: string;
   verified: boolean;
-  image_url?: string; // Added image_url
+  image_url?: string;
+  timing?: string;
+  listens?: number;
 }
 
 interface Achievement {
@@ -41,8 +44,6 @@ interface Achievement {
   requirement_type: string;
   is_unlocked?: boolean;
 }
-
-
 
 const mockAchievements: Achievement[] = [
   {
@@ -63,14 +64,28 @@ export default function Profile() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
+  const [role, setRole] = useState("Music Producer");
+  const [experience, setExperience] = useState("Intermediate");
+  const [favArtists, setFavArtists] = useState("Ninho, Travis Scott, Metro Boomin");
+  const [favGenre, setFavGenre] = useState("Trap");
+  const [software, setSoftware] = useState("Ableton");
+  const [city, setCity] = useState("California, USA");
+  const [availability, setAvailability] = useState("Available for Collaboration");
+  const [tags, setTags] = useState("#Drill #Melancholic #Rap-US");
+  const [instagram, setInstagram] = useState("");
+  const [youtube, setYoutube] = useState("");
+  const [tiktok, setTiktok] = useState("");
+
   const [isSaving, setIsSaving] = useState(false);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
   const [achievements] = useState<Achievement[]>(mockAchievements);
+
+  // Form tambah sertifikat
   const [newCertTitle, setNewCertTitle] = useState("");
-const [newCertCompetition, setNewCertCompetition] = useState("");
-const [newCertImageUrl, setNewCertImageUrl] = useState("");
-const [isAddingCert, setIsAddingCert] = useState(false);
+  const [newCertCompetition, setNewCertCompetition] = useState("");
+  const [newCertImageUrl, setNewCertImageUrl] = useState("");
+  const [isAddingCert, setIsAddingCert] = useState(false);
 
   // State for Modals
   const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null);
@@ -79,51 +94,77 @@ const [isAddingCert, setIsAddingCert] = useState(false);
   const [showAllAchievements, setShowAllAchievements] = useState(false);
 
   useEffect(() => {
-  if (!user) {
-    navigate("/login");
-    return;
-  }
-
-  const loadProfileData = async () => {
-    try {
-      // Isi form dari data user
-      setName(user.name || "");
-      setEmail(user.email || "");
-      setBio(user.bio || "");
-
-      // 🔥 Muat sertifikat dari Firestore
-      const q = query(
-        collection(db, 'certificates'),
-        where('user_id', '==', user.id),
-        where('public', '==', true)
-      );
-      const snapshot = await getDocs(q);
-      const certs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Certificate[];
-
-      setCertificates(certs);
-    } catch (err) {
-      console.error("Gagal memuat data:", err);
-    } finally {
-      setLoading(false);
+    if (!user) {
+      navigate("/login");
+      return;
     }
-  };
 
-  loadProfileData();
-}, [user, navigate]);
-      const handleSave = async () => {
-        setIsSaving(true);
-        try {
-          await updateProfile({ name, email, bio });
-          alert("✅ Profil berhasil diperbarui!");
-          } catch (error) {
-        console.error("Failed to save profile:", error);
-        alert("❌ Gagal memperbarui profil: " + (error instanceof Error ? error.message : "Unknown error"));
+    const loadProfileData = async () => {
+      try {
+        // Isi dari user
+        setName(user.name || "");
+        setEmail(user.email || "");
+        setBio(user.bio || "");
+        setRole(user.role || "");
+        setExperience(user.experience_level || "Intermediate");
+        setFavArtists((user.favorite_artists || []).join(", "));
+        setFavGenre(user.favorite_genre || "Trap");
+        setSoftware(user.software_used || "Ableton");
+        setCity(user.city_region || "California, USA");
+        setAvailability(user.availability || "Available for Collaboration");
+        setTags((user.tags || []).join(" "));
+        
+        const sm = user.social_media || {};
+        setInstagram(sm.instagram || "");
+        setYoutube(sm.youtube || "");
+        setTiktok(sm.tiktok || "");
+
+        // Muat sertifikat
+        const q = query(
+          collection(db, 'certificates'),
+          where('user_id', '==', user.id),
+          where('public', '==', true)
+        );
+        const snapshot = await getDocs(q);
+        const certs = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Certificate[];
+        setCertificates(certs);
+      } catch (err) {
+        console.error("Gagal memuat data:", err);
       } finally {
-    setIsSaving(false);                                                                                  
-  }
+        setLoading(false);
+      }
+    };
+
+    loadProfileData();
+  }, [user, navigate]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await updateProfile({
+        name,
+        email,
+        bio,
+        role,
+        experience_level: experience,
+        favorite_artists: favArtists.split(",").map(s => s.trim()).filter(Boolean),
+        favorite_genre: favGenre,
+        software_used: software,
+        city_region: city,
+        availability,
+        tags: tags.split(" ").filter(Boolean),
+        social_media: { instagram, youtube, tiktok },
+      });
+      alert("✅ Profil berhasil diperbarui!");
+    } catch (error) {
+      console.error("Failed to save profile:", error);
+      alert("❌ Gagal memperbarui profil.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -136,47 +177,39 @@ const [isAddingCert, setIsAddingCert] = useState(false);
   };
 
   const addCertificate = async () => {
-  if (!user) return;
+    if (!user) return;
+    setIsAddingCert(true);
+    try {
+      await addDoc(collection(db, 'certificates'), {
+        user_id: user.id,
+        username: user.name || "User",
+        title: newCertTitle.trim(),
+        competition_name: newCertCompetition.trim(),
+        verified: false,
+        image_url: newCertImageUrl.trim() || "https://via.placeholder.com/600x400?text=No+Image",
+        public: true,
+        created_at: new Date().toISOString()
+      });
 
-  setIsAddingCert(true);
-  try {
-    await addDoc(collection(db, 'certificates'), {
-      user_id: user.id,
-      username: user.name || "User", // bisa ganti jadi username jika punya
-      title: newCertTitle.trim(),
-      competition_name: newCertCompetition.trim(),
-      verified: false, // default belum diverifikasi
-      image_url: newCertImageUrl.trim() || "https://via.placeholder.com/600x400?text=No+Image",
-      public: true, // default publik
-      created_at: new Date().toISOString()
-    });
+      // Reset form
+      setNewCertTitle("");
+      setNewCertCompetition("");
+      setNewCertImageUrl("");
 
-    // Reset form
-    setNewCertTitle("");
-    setNewCertCompetition("");
-    setNewCertImageUrl("");
+      // Reload
+      const q = query(collection(db, 'certificates'), where('user_id', '==', user.id), where('public', '==', true));
+      const snapshot = await getDocs(q);
+      const certs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Certificate[];
+      setCertificates(certs);
 
-    // Muat ulang data
-    const q = query(
-      collection(db, 'certificates'),
-      where('user_id', '==', user.id),
-      where('public', '==', true)
-    );
-    const snapshot = await getDocs(q);
-    const certs = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Certificate[];
-    setCertificates(certs);
-
-    alert("✅ Sertifikat berhasil ditambahkan!");
-  } catch (err) {
-    console.error("Gagal tambah sertifikat:", err);
-    alert("❌ Gagal menambahkan sertifikat.");
-  } finally {
-    setIsAddingCert(false);
-  }
-};
+      alert("✅ Sertifikat berhasil ditambahkan!");
+    } catch (err) {
+      console.error("Gagal tambah sertifikat:", err);
+      alert("❌ Gagal menambahkan sertifikat.");
+    } finally {
+      setIsAddingCert(false);
+    }
+  };
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -189,238 +222,315 @@ const [isAddingCert, setIsAddingCert] = useState(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
   if (!user) return null;
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="min-h-screen text-slate-200 pb-20">
       <DashboardHeader />
 
-      <main className="container mx-auto px-4 sm:px-6 pt-24 max-w-4xl">
-        <div className="flex flex-col items-center justify-center mb-10">
-          <div className="rounded-xl border-2 border-slate-600/30 px-6 py-4 shadow-lg">
-            <div className="flex items-center gap-2">
-              <Settings className="w-5 h-5 text-slate-300" />
-              <h1 className="text-2xl font-bold text-slate-200">Profil</h1>
-            </div>
-          </div>
+      <div className="container mt-14 mx-auto px-4 sm:px-6 pt-8 max-w-6xl">
+        {/* Header */}
+        <div className="mb-10">
+          <h1 className="text-2xl font-bold mb-2">Profile Saya</h1>
+          <p className="text-slate-500 text-sm">Edit dan kelola informasi profil kamu.</p>
         </div>
 
-        {/* Main Container */}
-        <div className="bg-slate-800/30 backdrop-blur-md rounded-xl border border-slate-600/30 overflow-hidden">
-          
-          {/* Profile Section */}
-          <div className="p-6 border-b border-slate-600/30">
-            <div className="flex flex-col items-center gap-6">
-              {/* Avatar */}
-              <div className="relative">
-                <div className="w-32 h-32 rounded-full bg-slate-700/40 flex items-center justify-center border-4 border-slate-600/50">
-                  <span className="text-4xl font-bold text-slate-200">
-                    {user.name.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <button className="absolute bottom-2 right-2 p-2 bg-slate-600 hover:bg-slate-500 rounded-full text-white">
-                  <Camera className="w-5 h-5" />
-                </button>
+        {/* Main Profile Card */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Left Column: Avatar & Name */}
+          <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-xl p-6 border border-slate-600 shadow-lg">
+            <div className="flex flex-col items-center">
+              <div className="w-40 h-40 rounded-full bg-slate-700 flex items-center justify-center border-4 border-slate-500 mb-4 shadow-inner">
+                <span className="text-6xl font-bold text-white">
+                  {name.charAt(0).toUpperCase()}
+                </span>
               </div>
+              <h2 className="text-4xl font-bold mt-2">{name}</h2>
+              <button className="mt-4 p-2 bg-slate-600 hover:bg-slate-500 rounded-full text-white">
+                <Camera className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
 
-              {/* Form */}
-              <div className="w-full max-w-md space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Nama Lengkap</label>
+          {/* Right Column: Editable Bio & Details */}
+          <div className="lg:col-span-2 bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Bio & Detail Profil</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Kolom Kiri */}
+              <div>
+                <div className="mb-3">
+                  <label className="text-xs text-slate-400 block mb-1">Nama Lengkap</label>
                   <input
-                    type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-900/40 border border-slate-700/50 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
+                <div className="mb-3">
+                  <label className="text-xs text-slate-400 block mb-1">Email</label>
                   <input
-                    type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-900/40 border border-slate-700/50 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">Bio</label>
+                <div className="mb-3">
+                  <label className="text-xs text-slate-400 block mb-1">My Role</label>
                   <input
-                    type="text"
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="text-xs text-slate-400 block mb-1">My 3 Favorite Artists</label>
+                  <input
+                    value={favArtists}
+                    onChange={(e) => setFavArtists(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  />
+                </div>
+              </div>
+
+              {/* Kolom Kanan */}
+              <div>
+                <div className="mb-3">
+                  <label className="text-xs text-slate-400 block mb-1">Bio</label>
+                  <input
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
-                    placeholder="Ceritakan tentang dirimu..."
-                    className="w-full px-4 py-2.5 bg-slate-900/40 border border-slate-700/50 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
                   />
                 </div>
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className={`w-full py-3 font-medium rounded-lg transition-colors ${
-                    isSaving
-                      ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                      : "bg-slate-600 hover:bg-slate-500 text-white"
-                  }`}
+                <div className="mb-3">
+                  <label className="text-xs text-slate-400 block mb-1">My Experience Level</label>
+                  <input
+                    value={experience}
+                    onChange={(e) => setExperience(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="text-xs text-slate-400 block mb-1">My Favorite Music Genre</label>
+                  <input
+                    value={favGenre}
+                    onChange={(e) => setFavGenre(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="text-xs text-slate-400 block mb-1">The Software I Use</label>
+                  <input
+                    value={software}
+                    onChange={(e) => setSoftware(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Tags & Lokasi */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">My City or Region</label>
+                <input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Tags (pisahkan dengan spasi)</label>
+                <input
+                  value={tags}
+                  onChange={(e) => setTags(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm focus:outline-none focus:ring-1 focus:ring-slate-500"
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className={`px-4 py-2 rounded-lg font-medium ${
+                  isSaving
+                    ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+                    : "bg-green-600 hover:bg-green-500 text-white"
+                }`}
+              >
+                {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Social Media */}
+        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8 shadow-md">
+          <h3 className="text-lg font-semibold mb-4">Social Media (opsional)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <input
+              placeholder="Instagram (username)"
+              value={instagram}
+              onChange={(e) => setInstagram(e.target.value)}
+              className="px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm focus:outline-none"
+            />
+            <input
+              placeholder="YouTube (channel)"
+              value={youtube}
+              onChange={(e) => setYoutube(e.target.value)}
+              className="px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm focus:outline-none"
+            />
+            <input
+              placeholder="TikTok (username)"
+              value={tiktok}
+              onChange={(e) => setTiktok(e.target.value)}
+              className="px-3 py-2 bg-slate-700/50 border border-slate-600 rounded text-white text-sm focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* My Productions */}
+        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8 shadow-md">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Portofolio Saya</h3>
+            <span className="text-xs text-slate-400">Klik item untuk lihat</span>
+          </div>
+          {certificates.length === 0 ? (
+            <p className="text-slate-500 text-center py-6">Belum ada sertifikat/produksi</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {certificates.map((cert) => (
+                <div
+                  key={cert.id}
+                  onClick={() => setSelectedCertificate(cert)}
+                  className="aspect-square rounded-lg bg-slate-700 border border-slate-600 overflow-hidden cursor-pointer group"
                 >
-                  {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Portfolio Section */}
-          <div className="p-6 border-b border-slate-600/30">
-            <div 
-              className="flex items-center gap-2 mb-4 cursor-pointer hover:text-white transition-colors group"
-              onClick={() => setShowAllCertificates(true)}
-            >
-              <FileText className="w-5 h-5 text-slate-300 group-hover:text-white" />
-              <h2 className="text-lg font-semibold text-slate-200 group-hover:text-white">Portofolio</h2>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white" />
-            </div>
-            {certificates.length === 0 ? (
-              <p className="text-slate-400 text-center py-4">Belum ada sertifikat terverifikasi</p>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {certificates.slice(0, 4).map((cert) => (
-                  <div
-                    key={cert.id}
-                    onClick={() => setSelectedCertificate(cert)}
-                    className="aspect-square rounded-lg bg-slate-700/30 border border-slate-600/40 p-3 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-700/50 transition-colors"
-                  >
-                    <CheckCircle className="w-6 h-6 text-green-400 mb-2" />
-                    <p className="text-xs text-slate-200 font-medium line-clamp-2">{cert.title}</p>
+                  <img
+                    src={cert.image_url || `https://via.placeholder.com/300?text=${cert.title}`}
+                    alt={cert.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                  <div className="p-2 text-center">
+                    <p className="text-xs text-white font-medium line-clamp-1">{cert.title}</p>
                   </div>
-                ))}
-              </div>
-            )}
-            <div className="p-6 border-t border-slate-600/30">
-  <h3 className="text-lg font-semibold text-slate-200 mb-4">Tambah Sertifikat</h3>
-  <div className="space-y-3">
-    <input
-      type="text"
-      placeholder="Judul Sertifikat"
-      value={newCertTitle}
-      onChange={(e) => setNewCertTitle(e.target.value)}
-      className="w-full px-4 py-2 bg-slate-900/40 border border-slate-700/50 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-500"
-    />
-    <input
-      type="text"
-      placeholder="Nama Kompetisi"
-      value={newCertCompetition}
-      onChange={(e) => setNewCertCompetition(e.target.value)}
-      className="w-full px-4 py-2 bg-slate-900/40 border border-slate-700/50 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-500"
-    />
-    <input
-      type="text"
-      placeholder="URL Gambar (opsional)"
-      value={newCertImageUrl}
-      onChange={(e) => setNewCertImageUrl(e.target.value)}
-      className="w-full px-4 py-2 bg-slate-900/40 border border-slate-700/50 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-slate-500"
-    />
-    <button
-      onClick={addCertificate}
-      disabled={isAddingCert}
-      className={`w-full py-2 font-medium rounded-lg transition-colors ${
-        isAddingCert
-          ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-          : "bg-green-600 hover:bg-green-500 text-white"
-      }`}
-    >
-      {isAddingCert ? "Menyimpan..." : "Tambah Sertifikat"}
-    </button>
-  </div>
-</div>
-          </div>
-
-          {/* Achievements Section */}
-          <div className="p-6 border-b border-slate-600/30">
-            <div 
-              className="flex items-center gap-2 mb-4 cursor-pointer hover:text-white transition-colors group"
-              onClick={() => setShowAllAchievements(true)}
-            >
-              <Sparkles className="w-5 h-5 text-slate-300 group-hover:text-white" />
-              <h2 className="text-lg font-semibold text-slate-200 group-hover:text-white">Pencapaian</h2>
-              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-white" />
+                </div>
+              ))}
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {achievements.slice(0, 4).map((ach) => {
-                const Icon = getIcon(ach.icon);
-                return (
-                  <div
-                    key={ach.id}
-                    onClick={() => {
-                      if (!ach.is_unlocked) {
-                        setSelectedAchievement(ach);
-                      }
-                    }}
-                    className={`p-4 rounded-lg border flex flex-col items-center gap-2 transition-all ${
-                      ach.is_unlocked
-                        ? "bg-green-500/10 border-green-500/30"
-                        : "bg-slate-700/20 border-slate-600/40 opacity-70 cursor-pointer hover:opacity-100 hover:bg-slate-700/30"
-                    }`}
-                  >
-                    <div className="relative">
-                      {!ach.is_unlocked && (
-                        <Lock className="absolute inset-0 m-auto w-5 h-5 text-slate-500 z-10" />
-                      )}
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        ach.is_unlocked ? "bg-green-500/20" : "bg-slate-600/30"
-                      }`}>
-                        {Icon}
-                      </div>
-                    </div>
-                    <span className={`text-xs font-medium text-center ${
-                      ach.is_unlocked ? "text-slate-200" : "text-slate-500"
-                    }`}>
-                      {ach.name}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          )}
+        </div>
 
-          {/* Menu */}
-          <div className="p-2">
-            <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-700/40 rounded-lg transition-colors">
-              <HelpCircle className="w-5 h-5" />
-              <span className="font-medium">FAQs</span>
-            </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-700/40 rounded-lg transition-colors">
-              <FileText className="w-5 h-5" />
-              <span className="font-medium">Bantuan</span>
-            </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-slate-700/40 rounded-lg transition-colors">
-              <Settings className="w-5 h-5" />
-              <span className="font-medium">Pengaturan</span>
-            </button>
-            <button 
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+        {/* Tambah Sertifikat */}
+        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8 shadow-md">
+          <h3 className="text-lg font-semibold mb-4">Tambah Portofolio</h3>
+          <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="Judul Sertifikat"
+              value={newCertTitle}
+              onChange={(e) => setNewCertTitle(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded text-white focus:outline-none"
+            />
+            <input
+              type="text"
+              placeholder="Nama Kompetisi"
+              value={newCertCompetition}
+              onChange={(e) => setNewCertCompetition(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded text-white focus:outline-none"
+            />
+            <input
+              type="text"
+              placeholder="URL Gambar (opsional)"
+              value={newCertImageUrl}
+              onChange={(e) => setNewCertImageUrl(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded text-white focus:outline-none"
+            />
+            <button
+              onClick={addCertificate}
+              disabled={isAddingCert}
+              className={`w-full py-2 font-medium rounded-lg ${
+                isAddingCert ? "bg-slate-700 text-slate-400" : "bg-green-600 hover:bg-green-500 text-white"
+              }`}
             >
-              <LogOut className="w-5 h-5" />
-              <span className="font-medium">Keluar</span>
+              {isAddingCert ? "Menyimpan..." : "Tambah Sertifikat"}
             </button>
           </div>
         </div>
-      </main>
 
-      {/* Modals */}
+        {/* Pencapaian */}
+        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-8 shadow-md">
+          <h3 className="text-lg font-semibold mb-4">Pencapaian</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {achievements.slice(0, 4).map((ach) => {
+              const Icon = getIcon(ach.icon);
+              return (
+                <div
+                  key={ach.id}
+                  className={`p-4 rounded-lg border flex flex-col items-center gap-2 ${
+                    ach.is_unlocked
+                      ? "bg-green-500/10 border-green-500/30"
+                      : "bg-slate-700/20 border-slate-600/40 opacity-70"
+                  }`}
+                >
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center bg-slate-600/30">
+                    {Icon}
+                  </div>
+                  <span className="text-xs font-medium text-center text-slate-200">
+                    {ach.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
-      {/* Certificate Image Modal */}
+        {/* Menu Bawah */}
+        <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 shadow-md">
+          <p className="text-sm font-semibold text-slate-300 mb-3">Akun</p>
+          <div className="space-y-2">
+            <button className="flex items-center gap-3 w-full text-left px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/40 rounded">
+              <HelpCircle className="w-4 h-4" /> FAQs
+            </button>
+            <button className="flex items-center gap-3 w-full text-left px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/40 rounded">
+              <FileText className="w-4 h-4" /> Bantuan
+            </button>
+            <button className="flex items-center gap-3 w-full text-left px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/40 rounded">
+              <Settings className="w-4 h-4" /> Pengaturan Lanjutan
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 w-full text-left px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded"
+            >
+              <LogOut className="w-4 h-4" /> Keluar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* MODALS */}
       {selectedCertificate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedCertificate(null)}>
           <div className="relative bg-slate-800 rounded-xl max-w-3xl w-full p-2" onClick={e => e.stopPropagation()}>
             <button 
               onClick={() => setSelectedCertificate(null)}
-              className="absolute top-4 right-4 p-2 bg-slate-700/50 hover:bg-slate-600 rounded-full text-white z-10"
+              className="absolute top-4 right-4 p-2 bg-slate-700/50 hover:bg-slate-600 rounded-full text-white"
             >
               <X className="w-5 h-5" />
             </button>
             <img 
-              src={selectedCertificate.image_url} 
-              alt={selectedCertificate.title} 
+              src={selectedCertificate.image_url || "https://via.placeholder.com/600x400?text=No+Image"}
+              alt={selectedCertificate.title}
               className="w-full h-auto rounded-lg"
             />
             <div className="p-4 text-center">
@@ -431,118 +541,7 @@ const [isAddingCert, setIsAddingCert] = useState(false);
         </div>
       )}
 
-      {/* All Certificates Modal */}
-      {showAllCertificates && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowAllCertificates(false)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-slate-700 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">Semua Portofolio</h2>
-              <button onClick={() => setShowAllCertificates(false)} className="text-slate-400 hover:text-white">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {certificates.map((cert) => (
-                  <div
-                    key={cert.id}
-                    onClick={() => setSelectedCertificate(cert)}
-                    className="aspect-square rounded-lg bg-slate-800 border border-slate-700 p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-slate-700 transition-colors"
-                  >
-                    <CheckCircle className="w-8 h-8 text-green-400 mb-3" />
-                    <p className="text-sm text-slate-200 font-medium line-clamp-3">{cert.title}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Achievement Requirement Modal */}
-      {selectedAchievement && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedAchievement(null)}>
-          <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex flex-col items-center text-center gap-4">
-              <div className="w-20 h-20 rounded-full bg-slate-700 flex items-center justify-center">
-                <Lock className="w-8 h-8 text-slate-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">{selectedAchievement.name}</h3>
-                <p className="text-slate-300 mb-4">{selectedAchievement.description}</p>
-                <div className="bg-slate-700/50 rounded-lg p-4 w-full">
-                  <p className="text-sm text-slate-400 mb-1">Syarat Membuka:</p>
-                  <p className="text-white font-medium">
-                    {selectedAchievement.requirement_type === 'join' && `Bergabung dengan Angkasa`}
-                    {selectedAchievement.requirement_type === 'lomba' && `Menangkan ${selectedAchievement.requirement_count} lomba tingkat nasional`}
-                    {selectedAchievement.requirement_type === 'beasiswa' && `Terima ${selectedAchievement.requirement_count} beasiswa`}
-                    {selectedAchievement.requirement_type === 'forum' && `Buat ${selectedAchievement.requirement_count} posting di forum`}
-                    {selectedAchievement.requirement_type === 'challenge' && `Selesaikan ${selectedAchievement.requirement_count} tantangan koding`}
-                  </p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setSelectedAchievement(null)}
-                className="mt-2 px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* All Achievements Modal */}
-      {showAllAchievements && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setShowAllAchievements(false)}>
-          <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="p-6 border-b border-slate-700 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">Semua Pencapaian</h2>
-              <button onClick={() => setShowAllAchievements(false)} className="text-slate-400 hover:text-white">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-6 overflow-y-auto">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {achievements.map((ach) => {
-                  const Icon = getIcon(ach.icon);
-                  return (
-                    <div
-                      key={ach.id}
-                      onClick={() => {
-                        if (!ach.is_unlocked) {
-                          setSelectedAchievement(ach);
-                        }
-                      }}
-                      className={`p-4 rounded-lg border flex flex-col items-center gap-2 ${
-                        ach.is_unlocked
-                          ? "bg-green-500/10 border-green-500/30"
-                          : "bg-slate-700/20 border-slate-600/40 opacity-70 cursor-pointer hover:opacity-100 hover:bg-slate-700/30"
-                      }`}
-                    >
-                      <div className="relative">
-                        {!ach.is_unlocked && (
-                          <Lock className="absolute inset-0 m-auto w-5 h-5 text-slate-500 z-10" />
-                        )}
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                          ach.is_unlocked ? "bg-green-500/20" : "bg-slate-600/30"
-                        }`}>
-                          {Icon}
-                        </div>
-                      </div>
-                      <span className={`text-xs font-medium text-center ${
-                        ach.is_unlocked ? "text-slate-200" : "text-slate-500"
-                      }`}>
-                        {ach.name}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Achievements & All Certs Modals can be added if needed */}
     </div>
   );
 }

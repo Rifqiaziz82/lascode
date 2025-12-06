@@ -39,9 +39,6 @@ export default function Landing() {
           ) : (
             <Play className="w-5 h-5 transition-transform group-hover:scale-110 ml-0.5" />
           )}
-          <span className="text-sm font-medium whitespace-nowrap">
-            {isAudioPlaying ? 'Jeda' : 'Putar'}
-          </span>
         </button>
       </div>
 

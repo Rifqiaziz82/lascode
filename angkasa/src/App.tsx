@@ -18,6 +18,8 @@ import CentralUsers from './pages/admin/CentralUsers';
 import CentralReports from './pages/admin/CentralReports';
 import MaintenancePage from './pages/MaintenancePage';
 import { IS_MAINTENANCE_MODE } from './config/maintenance';
+import PublicProfile from './pages/PublicProfile';
+import DashAdminApp from './pages/DashAdmin/AdminDash';
 
 
 function App() {
@@ -50,6 +52,7 @@ function App() {
               {/* Public Routes */}
               // Di App.tsx
               <Route path="/" element={< Landing />} />
+              <Route path="/user/:id" element={<PublicProfile />} />
               
               <Route element={<PublicRoute />}>
                 <Route path="/login" element={<LoginPage />} />
@@ -73,6 +76,26 @@ function App() {
                 <Route path="/admin/central/users" element={<CentralUsers />} />
                 <Route path="/admin/central/reports" element={<CentralReports />} />
               </Route>
+
+              {/* AdminDash Routes */}
+                <Route
+                  path="/DashAdmin"
+                  element={
+                    <>
+                      {console.log('Rendering DashAdminApp for /adminbwh')}
+                      <DashAdminApp />
+                    </>
+                  }
+                />
+                <Route
+                  path="/adminbwh/AdminDash"
+                  element={
+                    <>
+                      {console.log('Rendering DashAdminApp for /adminbwh/AdminDash')}
+                      <DashAdminApp />
+                    </>
+                  }
+                />
             </Routes>
           </main>
           <AIAgent />

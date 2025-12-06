@@ -1,0 +1,214 @@
+import { useState } from 'react';
+import { Users, Plus, Search, ArrowLeft, Shield, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+interface Community {
+    id: string;
+    name: string;
+    description: string;
+    type: 'lomba' | 'beasiswa' | 'seminar';
+    members: number;
+    image?: string;
+    role?: string;
+}
+
+const mockCommunities: Community[] = [
+    { id: '1', name: 'Pejuang Beasiswa LPDP', description: 'Komunitas diskusi persiapan beasiswa LPDP.', type: 'beasiswa', members: 1250, role: 'Admin' },
+    { id: '2', name: 'Lomba Desain Grafis ID', description: 'Sharing info lomba desain terbaru.', type: 'lomba', members: 850 },
+    { id: '3', name: 'Seminar Pendidikan Nasional', description: 'Info seminar pendidikan terkini.', type: 'seminar', members: 500 },
+];
+
+const mockMembers = [
+    { id: 1, name: 'Budi Santoso', role: 'Owner' },
+    { id: 2, name: 'Siti Aminah', role: 'Admin' },
+    { id: 3, name: 'Rudi Hartono', role: 'Member' },
+    { id: 4, name: 'Dewi Lestari', role: 'Member' },
+];
+
+export default function CommunityView() {
+    const navigate = useNavigate();
+    const [viewMode, setViewMode] = useState<'menu' | 'create' | 'join' | 'detail'>('menu');
+    const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const handleCommunityClick = (community: Community) => {
+        setSelectedCommunity(community);
+        setViewMode('detail');
+    };
+
+    const renderMenu = () => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <button
+                onClick={() => setViewMode('create')}
+                className="flex flex-col items-center justify-center p-8 bg-slate-800/30 border border-slate-600/30 rounded-xl hover:bg-slate-700/40 transition-all group"
+            >
+                <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Plus className="w-8 h-8 text-blue-400" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-200 mb-2">Buat Komunitas</h3>
+                <p className="text-slate-400 text-center">Bangun komunitasmu sendiri dan ajak orang lain bergabung.</p>
+            </button>
+
+            <button
+                onClick={() => setViewMode('join')}
+                className="flex flex-col items-center justify-center p-8 bg-slate-800/30 border border-slate-600/30 rounded-xl hover:bg-slate-700/40 transition-all group"
+            >
+                <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Users className="w-8 h-8 text-green-400" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-200 mb-2">Gabung Komunitas</h3>
+                <p className="text-slate-400 text-center">Temukan komunitas yang sesuai dengan minatmu.</p>
+            </button>
+        </div>
+    );
+
+    const renderCreateForm = () => (
+        <div className="max-w-2xl mx-auto bg-slate-800/30 border border-slate-600/30 rounded-xl p-6">
+            <button onClick={() => setViewMode('menu')} className="flex items-center gap-2 text-slate-400 hover:text-white mb-6">
+                <ArrowLeft className="w-4 h-4" /> Kembali
+            </button>
+            <h2 className="text-2xl font-bold text-slate-200 mb-6">Buat Komunitas Baru</h2>
+            <form className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Nama Komunitas</label>
+                    <input type="text" className="w-full px-4 py-2 bg-slate-900/40 border border-slate-700/50 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Contoh: Pejuang Beasiswa" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Deskripsi</label>
+                    <textarea className="w-full px-4 py-2 bg-slate-900/40 border border-slate-700/50 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500" rows={4} placeholder="Jelaskan tentang komunitas ini..." />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">Tipe Forum</label>
+                    <select className="w-full px-4 py-2 bg-slate-900/40 border border-slate-700/50 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <option value="lomba">Lomba</option>
+                        <option value="beasiswa">Beasiswa</option>
+                        <option value="seminar">Seminar</option>
+                    </select>
+                </div>
+                <div className="pt-4">
+                    <button type="button" className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors">
+                        Buat Komunitas
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+
+    const renderJoinList = () => (
+        <div className="space-y-6">
+            <div className="flex items-center gap-4 mb-6">
+                <button onClick={() => setViewMode('menu')} className="p-2 hover:bg-slate-700/50 rounded-lg text-slate-400 hover:text-white">
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Cari komunitas..."
+                        className="w-full pl-10 pr-4 py-2 bg-slate-800/40 border border-slate-600/30 rounded-lg text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {mockCommunities.map((community) => (
+                    <div
+                        key={community.id}
+                        onClick={() => handleCommunityClick(community)}
+                        className="bg-slate-800/30 border border-slate-600/30 rounded-xl p-5 hover:border-blue-500/50 cursor-pointer transition-all group"
+                    >
+                        <div className="w-12 h-12 rounded-lg bg-slate-700/50 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 group-hover:text-blue-400 transition-colors">
+                            <Users className="w-6 h-6 text-slate-400 group-hover:text-blue-400" />
+                        </div>
+                        <h3 className="font-bold text-slate-200 mb-1">{community.name}</h3>
+                        <p className="text-sm text-slate-400 mb-3 line-clamp-2">{community.description}</p>
+                        <div className="flex items-center justify-between text-xs text-slate-500">
+                            <span className="px-2 py-1 bg-slate-700/30 rounded-full uppercase">{community.type}</span>
+                            <span>{community.members} Anggota</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+
+    const renderDetail = () => {
+        if (!selectedCommunity) return null;
+        return (
+            <div className="space-y-6">
+                <button onClick={() => setViewMode('join')} className="flex items-center gap-2 text-slate-400 hover:text-white">
+                    <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar
+                </button>
+
+                <div className="bg-slate-800/30 border border-slate-600/30 rounded-xl p-6">
+                    <div className="flex items-start gap-6">
+                        <div className="w-20 h-20 rounded-xl bg-slate-700/50 flex items-center justify-center flex-shrink-0">
+                            <Users className="w-10 h-10 text-slate-400" />
+                        </div>
+                        <div className="flex-1">
+                            <h2 className="text-2xl font-bold text-slate-200 mb-2">{selectedCommunity.name}</h2>
+                            <p className="text-slate-400 mb-4">{selectedCommunity.description}</p>
+                            <div className="flex items-center gap-4">
+                                <span className="px-3 py-1 bg-blue-500/20 text-blue-300 text-sm rounded-full font-medium uppercase">
+                                    {selectedCommunity.type}
+                                </span>
+                                <span className="text-slate-500 text-sm">{selectedCommunity.members} Anggota</span>
+                            </div>
+                        </div>
+                        <button className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors">
+                            Gabung
+                        </button>
+                    </div>
+                </div>
+
+                <div className="bg-slate-800/30 border border-slate-600/30 rounded-xl overflow-hidden">
+                    <div className="p-4 border-b border-slate-600/30">
+                        <h3 className="font-semibold text-slate-200">Anggota Komunitas</h3>
+                    </div>
+                    <div className="divide-y divide-slate-700/50">
+                        {mockMembers.map((member) => (
+                            <div
+                                key={member.id}
+                                onClick={() => navigate(`/user/${member.id}`)}
+                                className="p-4 flex items-center justify-between hover:bg-slate-700/20 transition-colors cursor-pointer"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-slate-700/50 flex items-center justify-center">
+                                        <span className="font-medium text-slate-300">{member.name.charAt(0)}</span>
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-slate-200">{member.name}</p>
+                                        <p className="text-xs text-slate-500">Online 1 jam lalu</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {member.role === 'Owner' && (
+                                        <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 text-xs rounded flex items-center gap-1">
+                                            <Shield className="w-3 h-3" /> Owner
+                                        </span>
+                                    )}
+                                    {member.role === 'Admin' && (
+                                        <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded flex items-center gap-1">
+                                            <Shield className="w-3 h-3" /> Admin
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="w-full">
+            {viewMode === 'menu' && renderMenu()}
+            {viewMode === 'create' && renderCreateForm()}
+            {viewMode === 'join' && renderJoinList()}
+            {viewMode === 'detail' && renderDetail()}
+        </div>
+    );
+}
