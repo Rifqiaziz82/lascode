@@ -31,7 +31,7 @@ const getInitials = (name: string | null | undefined, email?: string | null) => 
 };
 
 export const AdminDash: React.FC = () => {
-  const [firebaseUser, setFirebaseUser] = useState(null);
+  const [firebaseUser, setFirebaseUser] = useState<{ uid: string; displayName: string | null; email: string | null } | null>(null);
   const [currentRoute, setCurrentRoute] = useState<AppRoute>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
@@ -47,13 +47,17 @@ export const AdminDash: React.FC = () => {
           if (snapshot.exists()) {
             setIsAdminAuthenticated(true);
 
-            if (!user.displayName && user.email) {
-              const fallbackName = user.email.split('@')[0];
-              await updateProfile(user, { displayName: fallbackName });
-              setFirebaseUser({ ...user, displayName: fallbackName });
-            } else {
-              setFirebaseUser(user);
+            let displayNameToUse = user.displayName;
+            if (!displayNameToUse && user.email) {
+              displayNameToUse = user.email.split('@')[0];
+              await updateProfile(user, { displayName: displayNameToUse });
             }
+
+            setFirebaseUser({
+              uid: user.uid,
+              displayName: displayNameToUse,
+              email: user.email,
+            });
           } else {
             setIsAdminAuthenticated(false);
             setFirebaseUser(null);

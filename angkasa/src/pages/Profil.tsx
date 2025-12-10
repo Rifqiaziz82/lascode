@@ -23,7 +23,7 @@ import {
   Twitch,
 } from "lucide-react";
 import { doc, addDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 
 interface Certificate {
   id: string;
@@ -92,6 +92,25 @@ export default function Profile() {
   const [showAllCertificates, setShowAllCertificates] = useState(false);
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
   const [showAllAchievements, setShowAllAchievements] = useState(false);
+
+  /* Help Modal State */
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [reportIssue, setReportIssue] = useState('');
+  const [reportCategory, setReportCategory] = useState('General');
+  const [reportDescription, setReportDescription] = useState('');
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [myReports, setMyReports] = useState<any[]>([]);
+
+  useEffect(() => {
+        if (showHelpModal && user) {
+             // Fetch my reports
+             const q = query(collection(db, 'reports'), where('uid', '==', user.id));
+             getDocs(q).then(snap => {
+                 const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                 setMyReports(data);
+             });
+        }
+    }, [showHelpModal, user]);
 
   useEffect(() => {
     if (!user) {
@@ -222,7 +241,54 @@ export default function Profile() {
     }
   };
 
-  if (loading) {
+
+    const handleSendReport = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        // Debugging: Check what user object looks like
+        console.log("Current User Object:", user);
+        
+        // Fallback: Get UID directly from Firebase Auth if Context is missing it
+        const currentUser = auth.currentUser;
+        const uid = user?.id || currentUser?.uid;
+
+        if (!uid) {
+            alert("Error: User ID not found. Please reload the page.");
+            return;
+        }
+
+        setIsSubmittingReport(true);
+        try {
+            const newReport = {
+                uid: uid, 
+                email: user?.email || currentUser?.email || 'Unknown',
+                issue: reportIssue,
+                category: reportCategory,
+                description: reportDescription,
+                status: 'Baru',
+                reply: '',
+                date: new Date().toISOString().split('T')[0],
+                createdAt: new Date().toISOString()
+            };
+            
+            const docRef = await addDoc(collection(db, 'reports'), newReport);
+            
+            // Add to local state immediately for UX
+            setMyReports(prev => [{id: docRef.id, ...newReport}, ...prev]);
+
+            setShowHelpModal(false);
+            alert('✅ Laporan berhasil dikirim!');
+            setReportIssue('');
+            setReportDescription('');
+        } catch (err: any) {
+            console.error("Error sending report:", err);
+            alert(`Gagal mengirim laporan: ${err.message || err}`);
+        } finally {
+            setIsSubmittingReport(false);
+        }
+    };
+
+    if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
         <p>Loading...</p>
@@ -502,9 +568,12 @@ export default function Profile() {
             <button className="flex items-center gap-3 w-full text-left px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/40 rounded">
               <HelpCircle className="w-4 h-4" /> FAQs
             </button>
-            <button className="flex items-center gap-3 w-full text-left px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/40 rounded">
-              <FileText className="w-4 h-4" /> Bantuan
-            </button>
+                  <button 
+                    onClick={() => setShowHelpModal(true)}
+                    className="flex items-center gap-3 w-full text-left px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/40 rounded"
+                  >
+                    <FileText className="w-4 h-4" /> Bantuan
+                  </button>
             <button className="flex items-center gap-3 w-full text-left px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/40 rounded">
               <Settings className="w-4 h-4" /> Pengaturan Lanjutan
             </button>
@@ -542,6 +611,99 @@ export default function Profile() {
       )}
 
       {/* Achievements & All Certs Modals can be added if needed */}
+
+             {/* Report Modal */}
+             {showHelpModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-slate-800 border border-slate-700 rounded-xl w-full max-w-2xl overflow-hidden shadow-xl animate-in fade-in zoom-in duration-200">
+                        <div className="p-6 border-b border-slate-700 flex items-center justify-between bg-slate-900/50">
+                            <h3 className="text-xl font-bold text-white">Bantuan & Laporan</h3>
+                            <button onClick={() => setShowHelpModal(false)} className="text-slate-400 hover:text-white">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="p-6 grid gap-6 md:grid-cols-2">
+                            {/* New Report Form */}
+                            <div className="space-y-4">
+                                <h4 className="font-semibold text-blue-400">Buat Laporan Baru</h4>
+                                <form onSubmit={handleSendReport} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm text-slate-400 mb-1">Masalah</label>
+                                        <input 
+                                            type="text" 
+                                            value={reportIssue}
+                                            onChange={(e) => setReportIssue(e.target.value)}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                                            placeholder="Judul singkat masalah..."
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-slate-400 mb-1">Kategori</label>
+                                        <select
+                                            value={reportCategory}
+                                            onChange={(e) => setReportCategory(e.target.value)}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                                        >
+                                            <option value="General">Umum</option>
+                                            <option value="Login">Masalah Login</option>
+                                            <option value="Bug">Bug / Error</option>
+                                            <option value="Feature">Saran Fitur</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-slate-400 mb-1">Deskripsi</label>
+                                        <textarea 
+                                            value={reportDescription}
+                                            onChange={(e) => setReportDescription(e.target.value)}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 h-24"
+                                            placeholder="Jelaskan detail masalah..."
+                                            required
+                                        ></textarea>
+                                    </div>
+                                    <button 
+                                        type="submit" 
+                                        disabled={isSubmittingReport}
+                                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded font-medium transition-colors"
+                                    >
+                                        {isSubmittingReport ? 'Mengirim...' : 'Kirim Laporan'}
+                                    </button>
+                                </form>
+                            </div>
+                            
+                            {/* History */}
+                            <div className="space-y-4 border-l border-slate-700 pl-6 h-[400px] overflow-y-auto">
+                                <h4 className="font-semibold text-green-400">Riwayat Laporan</h4>
+                                {myReports.length === 0 ? (
+                                    <p className="text-slate-500 text-sm italic">Belum ada laporan yang dikirim.</p>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {myReports.map((rep) => (
+                                            <div key={rep.id} className="bg-slate-900/50 p-3 rounded border border-slate-700/50">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className="text-white font-medium text-sm">{rep.issue}</span>
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${rep.status === 'Selesai' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                                                        {rep.status}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-slate-400 mb-2 truncate">{rep.description}</p>
+                                                
+                                                {/* Admin Reply */}
+                                                {rep.reply && (
+                                                    <div className="mt-2 bg-blue-900/20 p-2 rounded border border-blue-500/20">
+                                                        <p className="text-xs text-blue-300 font-semibold mb-1">Balasan Admin:</p>
+                                                        <p className="text-xs text-slate-300">{rep.reply}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
     </div>
   );
 }

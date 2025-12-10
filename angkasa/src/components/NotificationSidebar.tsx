@@ -1,5 +1,5 @@
 // src/components/NotificationSidebar.tsx
-import { X, Bell, Trophy, Medal, User, Trash2 } from "lucide-react";
+import { X, Bell, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { ref, onValue, set, remove } from "firebase/database";
 import { auth } from "../firebase";

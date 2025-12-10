@@ -1,59 +1,94 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import { AlertCircle, CheckCircle, Clock, Filter, Search, X, Mail, Calendar, Tag, FileText } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, Filter, Search, X, Mail, Calendar, Tag, FileText, Send } from 'lucide-react';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 interface Report {
-    id: number;
+    id: string; // Changed to string for Firestore ID
     email: string;
     issue: string;
     category: string;
     date: string;
     status: 'Baru' | 'Proses' | 'Selesai';
     description: string;
+    reply?: string; // Admin reply
+    uid?: string;
 }
 
 export default function CentralReports() {
+    const [reports, setReports] = useState<Report[]>([]);
+    const [loading, setLoading] = useState(true);
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    
+    const [replyText, setReplyText] = useState('');
+    const [isSendingReply, setIsSendingReply] = useState(false);
 
-    const reports: Report[] = [
-        {
-            id: 1,
-            email: 'user1@example.com',
-            issue: 'Gagal login saat menggunakan Google',
-            category: 'Login',
-            date: '2024-03-20',
-            status: 'Baru',
-            description: 'Saya mencoba login menggunakan akun Google saya tetapi selalu kembali ke halaman login tanpa pesan error. Saya sudah mencoba clear cache tapi masih sama.'
-        },
-        {
-            id: 2,
-            email: 'student@school.id',
-            issue: 'Sertifikat tidak muncul di profil',
-            category: 'Profil',
-            date: '2024-03-19',
-            status: 'Proses',
-            description: 'Saya sudah menyelesaikan lomba desain grafis dan dinyatakan menang, tapi sertifikat belum muncul di halaman profil saya.'
-        },
-        {
-            id: 3,
-            email: 'provider@lomba.com',
-            issue: 'Error saat upload banner lomba',
-            category: 'Upload',
-            date: '2024-03-18',
-            status: 'Selesai',
-            description: 'Saat mencoba mengupload banner untuk lomba baru, muncul error "File too large" padahal ukuran file sudah di bawah 2MB.'
-        },
-        {
-            id: 4,
-            email: 'new@user.com',
-            issue: 'Verifikasi email tidak masuk',
-            category: 'Register',
-            date: '2024-03-17',
-            status: 'Baru',
-            description: 'Saya sudah mendaftar tapi email verifikasi tidak masuk ke inbox maupun spam folder saya.'
-        },
-    ];
+    useEffect(() => {
+        // Real-time subscription to reports
+        const q = query(collection(db, 'reports'), orderBy('createdAt', 'desc'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const fetchedReports = snapshot.docs.map(doc => {
+                 const data = doc.data();
+                 return {
+                     id: doc.id,
+                     email: data.email || 'No Email',
+                     issue: data.issue || 'No Issue',
+                     category: data.category || 'General',
+                     date: data.date || 'N/A',
+                     status: data.status || 'Baru',
+                     description: data.description || '',
+                     reply: data.reply,
+                     uid: data.uid
+                 } as Report;
+            });
+            setReports(fetchedReports);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching reports:", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const handleReply = async () => {
+        if (!selectedReport || !replyText.trim()) return;
+        setIsSendingReply(true);
+        try {
+            const reportRef = doc(db, 'reports', selectedReport.id);
+            await updateDoc(reportRef, {
+                reply: replyText,
+                status: 'Selesai' // Auto-close ticket on reply? Or 'Proses'? Usually 'Selesai' if answered.
+            });
+            setReplyText('');
+            setSelectedReport(null);
+            alert("Balasan terkirim!");
+        } catch (err) {
+            console.error("Failed to send reply:", err);
+            alert("Gagal mengirim balasan.");
+        } finally {
+            setIsSendingReply(false);
+        }
+    };
+
+    const handleStatusUpdate = async (reportId: string, newStatus: Report['status']) => {
+         try {
+            await updateDoc(doc(db, 'reports', reportId), {
+                status: newStatus
+            });
+        } catch (err) {
+            console.error("Failed to update status:", err);
+        }
+    };
+
+    // Calculate stats
+    const stats = {
+        baru: reports.filter(r => r.status === 'Baru').length,
+        proses: reports.filter(r => r.status === 'Proses').length,
+        selesai: reports.filter(r => r.status === 'Selesai').length,
+    };
 
     const filteredReports = reports.filter(report =>
         report.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -61,6 +96,8 @@ export default function CentralReports() {
         report.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
         report.description.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    if (loading) return <div className="p-8 text-white">Loading Reports...</div>;
 
     return (
         <AdminLayout role="central">
@@ -78,7 +115,7 @@ export default function CentralReports() {
                         </div>
                         <div>
                             <p className="text-slate-400 text-sm font-medium">Laporan Baru</p>
-                            <p className="text-2xl font-bold text-white">5</p>
+                            <p className="text-2xl font-bold text-white">{stats.baru}</p>
                         </div>
                     </div>
                     <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 flex items-center gap-4">
@@ -87,7 +124,7 @@ export default function CentralReports() {
                         </div>
                         <div>
                             <p className="text-slate-400 text-sm font-medium">Sedang Proses</p>
-                            <p className="text-2xl font-bold text-white">3</p>
+                            <p className="text-2xl font-bold text-white">{stats.proses}</p>
                         </div>
                     </div>
                     <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 flex items-center gap-4">
@@ -96,7 +133,7 @@ export default function CentralReports() {
                         </div>
                         <div>
                             <p className="text-slate-400 text-sm font-medium">Selesai</p>
-                            <p className="text-2xl font-bold text-white">128</p>
+                            <p className="text-2xl font-bold text-white">{stats.selesai}</p>
                         </div>
                     </div>
                 </div>
@@ -152,14 +189,21 @@ export default function CentralReports() {
                                             <td className="px-6 py-4 text-slate-300 max-w-xs truncate">{report.issue}</td>
                                             <td className="px-6 py-4 text-slate-400">{report.date}</td>
                                             <td className="px-6 py-4">
-                                                <span className={`
-                            px-2.5 py-1 rounded-full text-xs font-medium
-                            ${report.status === 'Baru' ? 'bg-red-400/10 text-red-400' :
-                                                        report.status === 'Proses' ? 'bg-yellow-400/10 text-yellow-400' :
-                                                            'bg-green-400/10 text-green-400'}
-                          `}>
-                                                    {report.status}
-                                                </span>
+                                                <select
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    value={report.status}
+                                                    onChange={(e) => handleStatusUpdate(report.id, e.target.value as any)}
+                                                    className={`
+                                                        px-2.5 py-1 rounded-full text-xs font-medium border-none bg-opacity-10
+                                                        ${report.status === 'Baru' ? 'bg-red-400 text-red-400' :
+                                                            report.status === 'Proses' ? 'bg-yellow-400 text-yellow-400' :
+                                                                'bg-green-400 text-green-400'}
+                                                      `}
+                                                >
+                                                    <option value="Baru" className="bg-slate-800 text-slate-300">Baru</option>
+                                                    <option value="Proses" className="bg-slate-800 text-slate-300">Proses</option>
+                                                    <option value="Selesai" className="bg-slate-800 text-slate-300">Selesai</option>
+                                                </select>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <button
@@ -245,6 +289,35 @@ export default function CentralReports() {
                                     {selectedReport.description}
                                 </p>
                             </div>
+                            
+                            {/* Reply Section */}
+                            <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700/50">
+                                <div className="flex items-center gap-2 text-slate-400 mb-2">
+                                    <Send size={16} />
+                                    <span className="text-sm">Balasan Admin</span>
+                                </div>
+                                {selectedReport.reply ? (
+                                    <p className="text-green-400">{selectedReport.reply}</p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <textarea
+                                            value={replyText}
+                                            onChange={(e) => setReplyText(e.target.value)}
+                                            placeholder="Tulis balasan untuk user..."
+                                            className="w-full bg-slate-800 border border-slate-600 rounded p-2 text-white text-sm focus:outline-none focus:border-blue-500 min-h-[80px]"
+                                        />
+                                        <div className="flex justify-end">
+                                            <button 
+                                                onClick={handleReply}
+                                                disabled={isSendingReply || !replyText.trim()}
+                                                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50"
+                                            >
+                                                {isSendingReply ? 'Mengirim...' : 'Kirim Balasan'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-700">
                                 <button
@@ -252,9 +325,6 @@ export default function CentralReports() {
                                     className="px-4 py-2 text-slate-300 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
                                 >
                                     Tutup
-                                </button>
-                                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors font-medium">
-                                    Balas via Email
                                 </button>
                             </div>
                         </div>

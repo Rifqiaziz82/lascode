@@ -5,6 +5,8 @@ import { db } from '../../firebase';
 import {
   collection,
   query,
+  doc,
+  getDoc,
   where,
   orderBy,
   onSnapshot,
@@ -50,50 +52,45 @@ export default function GroupView() {
     if (!user) return;
 
     const loadCommunities = async () => {
-      try {
-        // Ambil semua keanggotaan user
-        const membershipQuery = query(
-          collection(db, 'memberships'),
-          where('user_id', '==', user.id)
-        );
-        const membershipSnap = await getDocs(membershipQuery);
-        const communityIds = membershipSnap.docs.map(doc => doc.data().community_id);
-        console.log("User ID:", user.id);
-        console.log("Jumlah membership ditemukan:", membershipSnap.docs.length);
-        membershipSnap.docs.forEach(doc => {
-        console.log("Membership data:", doc.data());
-        });
+  try {
+    // Ambil semua keanggotaan user
+    const membershipQuery = query(
+      collection(db, 'memberships'),
+      where('user_id', '==', user.id)
+    );
+    const membershipSnap = await getDocs(membershipQuery);
+    const communityIds = membershipSnap.docs.map(doc => doc.data().community_id);
 
-        if (communityIds.length === 0) {
-          setGroups([]);
-          return;
-        }
+    if (communityIds.length === 0) {
+      setGroups([]);
+      return;
+    }
 
-        // Ambil data komunitas
-        const communityQuery = query(
-          collection(db, 'communities'),
-          where('id', 'in', communityIds)
-        );
-        const communitySnap = await getDocs(communityQuery);
-        const groupList: Group[] = communitySnap.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name || 'Komunitas',
-            lastMessage: 'Gabung untuk diskusi',
-            time: '',
-            unread: 0,
-            memberCount: data.members_count || 0,
-          };
-        });
+    // Ambil data komunitas berdasarkan document ID
+    const communityDocs = await Promise.all(
+      communityIds.map(id => getDoc(doc(db, 'communities', id)))
+    );
 
-        
+    // Bangun daftar grup
+    const groupList: Group[] = communityDocs
+      .filter(doc => doc.exists()) // hanya yang ditemukan
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name || 'Komunitas',
+          lastMessage: 'Gabung untuk diskusi',
+          time: '',
+          unread: 0,
+          memberCount: data.members_count || 0,
+        };
+      });
 
-        setGroups(groupList);
-      } catch (err) {
-        console.error('Gagal muat komunitas:', err);
-      }
-    };
+    setGroups(groupList);
+  } catch (err) {
+    console.error('Gagal muat komunitas:', err);
+  }
+};
 
     loadCommunities();
   }, [user]);

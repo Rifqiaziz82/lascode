@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, collection, query, where, getDocs, getDoc, getCountFromServer } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { Link } from 'react-router-dom';
 
@@ -75,6 +75,27 @@ export default function RegisterPage() {
     }
 
     try {
+      // ✅ 0. Cek Pengaturan Pendaftaran (Global Kill Switch & Limit)
+      const settingsSnap = await getDoc(doc(db, 'settings', 'registration'));
+      if (settingsSnap.exists()) {
+          const { allowRegistration, maxUsers } = settingsSnap.data();
+          if (!allowRegistration) {
+              setError('Pendaftaran sedang ditutup oleh admin.');
+              setLoading(false);
+              return;
+          }
+          
+          // Cek jumlah user jika ada limit
+          if (maxUsers) {
+              const usersSnap = await getCountFromServer(collection(db, 'users'));
+              if (usersSnap.data().count >= maxUsers) {
+                  setError('Kuota pendaftaran penuh.');
+                  setLoading(false);
+                  return;
+              }
+          }
+      }
+
       // ✅ Cek keunikan username
       const available = await isUsernameAvailable(cleanUsername);
       if (!available) {

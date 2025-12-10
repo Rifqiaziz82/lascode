@@ -56,29 +56,6 @@ export default function CommunityView() {
     const [type, setType] = useState<'lomba' | 'beasiswa' | 'seminar'>('lomba');
     const [members, setMembers] = useState<{ id: string; name: string; role: string }[]>([]);
     const [loadingMembers, setLoadingMembers] = useState(true);
-    const [isMember, setIsMember] = useState(false);
-    const [checkingMembership, setCheckingMembership] = useState(true);
-
-    useEffect(() => {
-  const checkMembership = async () => {
-    if (!user || !selectedCommunity) {
-      setIsMember(false);
-      setCheckingMembership(false);
-      return;
-    }
-
-    const q = query(
-      collection(db, 'memberships'),
-      where('community_id', '==', selectedCommunity.id),
-      where('user_id', '==', user.id)
-    );
-    const snap = await getDocs(q);
-    setIsMember(!snap.empty);
-    setCheckingMembership(false);
-  };
-
-  checkMembership();
-}, [user, selectedCommunity]);
 
     useEffect(() => {
   const loadCommunities = async () => {
@@ -197,26 +174,10 @@ const handleCreateCommunity = async () => {
 };
 
 const handleJoinCommunity = async (communityId: string) => {
-  if (!user) {
-    navigate('/login', { state: { message: 'Login untuk gabung komunitas' } });
-    return;
-  }
+  if (!user) return;
 
   try {
-    // 🔍 Cek apakah user sudah jadi anggota
-    const membershipQuery = query(
-      collection(db, 'memberships'),
-      where('community_id', '==', communityId),
-      where('user_id', '==', user.id)
-    );
-    const snapshot = await getDocs(membershipQuery);
-
-    if (!snapshot.empty) {
-      alert('Anda sudah menjadi anggota komunitas ini.');
-      return;
-    }
-
-    // ✅ Jika belum, baru gabung
+    // Tambahkan ke memberships
     await addDoc(collection(db, 'memberships'), {
       community_id: communityId,
       user_id: user.id,
@@ -224,23 +185,19 @@ const handleJoinCommunity = async (communityId: string) => {
       joined_at: serverTimestamp(),
     });
 
-    // Update jumlah anggota
+    // Update members_count
     const communityRef = doc(db, 'communities', communityId);
     await updateDoc(communityRef, {
       members_count: increment(1),
     });
 
     alert('Berhasil gabung komunitas!');
-    
-    // Refresh daftar anggota jika sedang di halaman detail
-    if (selectedCommunity && selectedCommunity.id === communityId) {
-      await loadMembers(communityId);
-    }
+    // Bisa redirect ke halaman forum komunitas
   } catch (err) {
     console.error('Gagal gabung:', err);
     alert('Gagal gabung komunitas.');
   }
-};
+};    
 
     const handleCommunityClick = async (community: Community) => {
   setSelectedCommunity(community);
@@ -371,29 +328,21 @@ const handleJoinCommunity = async (communityId: string) => {
                                 <span className="text-slate-500 text-sm">{selectedCommunity.members} Anggota</span>
                             </div>
                         </div>
-                        {checkingMembership ? (
-                        <button className="px-6 py-2 bg-slate-600 text-white rounded-lg cursor-not-allowed">
-                            Memuat...
-                        </button>
-                        ) : isMember ? (
-                        <button className="px-6 py-2 bg-green-600 text-white rounded-lg cursor-default">
-                            Sudah Gabung
-                        </button>
-                        ) : user ? (
-                        <button
-                            onClick={() => selectedCommunity && handleJoinCommunity(selectedCommunity.id)}
-                            className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg"
-                        >
-                            Gabung
-                        </button>
-                        ) : (
-                        <button
-                            onClick={() => navigate('/login', { state: { message: 'Login untuk gabung komunitas' } })}
-                            className="px-6 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg"
-                        >
-                            Login untuk Gabung
-                        </button>
-                        )}
+                        {user ? (
+                            <button
+                                onClick={() => selectedCommunity && handleJoinCommunity(selectedCommunity.id)}
+                                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
+                            >
+                                Gabung
+                            </button>
+                            ) : (
+                            <button
+                                onClick={() => navigate('/login', { state: { message: 'Login untuk gabung komunitas' } })}
+                                className="px-6 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg font-medium transition-colors"
+                            >
+                                Login untuk Gabung
+                            </button>
+                            )}
                     </div>
                 </div>
 

@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { Users, GraduationCap, Building2, Search, Filter, X, Mail, Calendar, Phone, MapPin, Activity } from 'lucide-react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 interface User {
     id: number;
@@ -25,44 +27,39 @@ export default function CentralUsers() {
         { label: 'Admin Provider', value: '45', change: '+2', icon: Building2, color: 'text-orange-400' },
     ];
 
-    const users: User[] = [
-        {
-            id: 1,
-            name: 'Budi Santoso',
-            email: 'budi@student.id',
-            role: 'Pelajar',
-            status: 'Aktif',
-            joined: '2024-01-15',
-            phone: '081234567890',
-            lastLogin: '2024-03-20 14:30',
-            bio: 'Siswa SMA Negeri 1 Jakarta yang gemar mengikuti lomba matematika dan sains.',
-            location: 'Jakarta, Indonesia'
-        },
-        {
-            id: 2,
-            name: 'Siti Aminah',
-            email: 'siti@provider.com',
-            role: 'Provider',
-            status: 'Aktif',
-            joined: '2024-02-01',
-            phone: '081987654321',
-            lastLogin: '2024-03-20 09:15',
-            bio: 'Admin resmi dari Universitas Indonesia untuk mengelola informasi lomba.',
-            location: 'Depok, Indonesia'
-        },
-        {
-            id: 3,
-            name: 'Ahmad Rizki',
-            email: 'ahmad@student.id',
-            role: 'Pelajar',
-            status: 'Non-aktif',
-            joined: '2024-03-10',
-            phone: '085678901234',
-            lastLogin: '2024-03-15 10:00',
-            bio: 'Mahasiswa semester awal yang sedang mencari pengalaman lomba IT.',
-            location: 'Bandung, Indonesia'
-        },
-    ];
+    const [users, setUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const querySnapshot = await getDocs(collection(db, 'users'));
+                const fetchedUsers: User[] = [];
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    fetchedUsers.push({
+                        id: doc.id as any, // ID string in firestore
+                        name: data.name || 'No Name',
+                        email: data.email || '',
+                        role: data.role || 'Pelajar', // Default role
+                        status: data.status || 'Aktif',
+                        joined: data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'N/A',
+                        phone: data.phone || '-',
+                        lastLogin: data.lastLogin || '-',
+                        bio: data.bio || '',
+                        location: data.location || '-'
+                    });
+                });
+                setUsers(fetchedUsers);
+            } catch (err) {
+                console.error("Error fetching users:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUsers();
+    }, []);
 
     const [searchQuery, setSearchQuery] = useState('');
 

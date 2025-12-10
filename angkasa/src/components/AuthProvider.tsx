@@ -7,11 +7,24 @@ import { authService } from '../auth';
 
 // 🔹 Tipe user: `id` = Firebase UID (unik & aman)
 type User = {
-  id: string;               // ← ini adalah uid Firebase
+  id: string;
   name: string;
   email: string;
   emailVerified: boolean;
-  bio?: string;             // opsional
+  bio?: string;
+  role?: string;
+  experience_level?: string;
+  favorite_artists?: string[];
+  favorite_genre?: string;
+  software_used?: string;
+  city_region?: string;
+  availability?: string;
+  tags?: string[];
+  social_media?: {
+      instagram?: string;
+      youtube?: string;
+      tiktok?: string;
+  };
 };
 
 type AuthContextType = {
@@ -43,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const audio = new Audio('/soundtrack3.mp3');
+      const audio = new Audio('/soundtrack.mp3');
       audio.loop = true;
       audio.volume = 0.3;
       audioRef.current = audio;
@@ -89,6 +102,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               email: data.email || firebaseUser.email || '',
               emailVerified: firebaseUser.emailVerified,
               bio: data.bio || undefined,
+              role: data.role,
+              experience_level: data.experience_level,
+              favorite_artists: data.favorite_artists,
+              favorite_genre: data.favorite_genre,
+              software_used: data.software_used,
+              city_region: data.city_region,
+              availability: data.availability,
+              tags: data.tags,
+              social_media: data.social_media
             };
           } else {
             // ✅ Buat profil default di Firestore jika belum ada
