@@ -136,11 +136,9 @@ export default function NotificationSidebar({ isOpen, onClose }: NotificationSid
   const [loading, setLoading] = useState(true);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
 
-  // Gunakan nilai primitif sebagai dependensi
   const currentUser = auth.currentUser;
   const currentUserUid = currentUser?.uid || null;
 
-  // Ambil data dari Firebase
   useEffect(() => {
     if (!isOpen || !currentUserUid) {
       setLoading(false);
@@ -176,7 +174,7 @@ export default function NotificationSidebar({ isOpen, onClose }: NotificationSid
     });
 
     return () => unsubscribeGlobal();
-  }, [isOpen, currentUserUid]); // ✅ Hanya primitif
+  }, [isOpen, currentUserUid]);
 
   const markAsRead = (id: string) => {
     if (!currentUserUid) return;
@@ -216,7 +214,6 @@ export default function NotificationSidebar({ isOpen, onClose }: NotificationSid
     setSelectedNotification(notif);
   };
 
-  // Close when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
@@ -331,7 +328,7 @@ export default function NotificationSidebar({ isOpen, onClose }: NotificationSid
             )}
           </div>
 
-          {/* Footer: Tandai & Hapus Semua */}
+          {/* Footer: Tandai Semua & Hapus Semua */}
           <div className="p-4 border-t border-slate-700/50 bg-slate-800/30 flex gap-2">
             <button
               onClick={markAllAsRead}
