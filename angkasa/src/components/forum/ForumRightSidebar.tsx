@@ -1,5 +1,10 @@
 import { Search, UserPlus, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { db } from '../../firebase';
+import { collection, getDocs, getDoc, doc, setDoc,arrayUnion, query, where, limit } from 'firebase/firestore';
+import { useAuth } from '../AuthProvider';
+
 
 interface ForumRightSidebarProps {
     onSearch: (query: string) => void;
@@ -22,7 +27,70 @@ const suggestedUsers = [
 ];
 
 export default function ForumRightSidebar({ onSearch, onSearchClick }: ForumRightSidebarProps) {
+    const { user } = useAuth();
+    const [suggestedUsers, setSuggestedUsers] = useState<{ id: string; name: string; role: string; avatar: string }[]>([]);
     const navigate = useNavigate();
+
+    useEffect(() => {
+  const loadSuggestedUsers = async () => {
+    if (!user) return;
+
+    try {
+      // Ambil user lain (bukan diri sendiri), maks 3
+      const q = query(
+        collection(db, 'users'),
+        where('id', '!=', user.id),
+        limit(3)
+      );
+      const snapshot = await getDocs(q);
+      const users = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name || 'User',
+          role: data.role || 'Member', // pastikan field 'role' ada di Firestore
+          avatar: data.name?.charAt(0).toUpperCase() || 'U',
+        };
+      });
+      setSuggestedUsers(users);
+    } catch (err) {
+      console.error('Gagal muat saran user:', err);
+    }
+  };
+
+  loadSuggestedUsers();
+}, [user]);
+
+const followUser = async (userIdToFollow: string) => {
+  if (!user) {
+    // Opsional: arahkan ke login
+    return;
+  }
+
+  try {
+    const friendDoc = await getDoc(doc(db, 'friends', user.id));
+    let friendIds: string[] = [];
+    if (friendDoc.exists()) {
+      friendIds = friendDoc.data().friends || [];
+    }
+
+    if (friendIds.includes(userIdToFollow)) {
+      alert('Sudah mengikuti user ini.');
+      return;
+    }
+
+    await setDoc(
+      doc(db, 'friends', user.id),
+      { friends: arrayUnion(userIdToFollow) },
+      { merge: true }
+    );
+
+    alert('Berhasil mengikuti!');
+  } catch (err) {
+    console.error('Gagal mengikuti:', err);
+    alert('Gagal mengikuti user.');
+  }
+};
 
     const handleSearchClick = (term: string) => {
         onSearch(term);
@@ -74,7 +142,9 @@ export default function ForumRightSidebar({ onSearch, onSearchClick }: ForumRigh
                                     <p className="text-xs text-slate-500">{user.role}</p>
                                 </div>
                             </div>
-                            <button className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-full transition-colors" title="Ikuti">
+                            <button onClick={(e) => {
+                                e.stopPropagation(); // cegah trigger navigate
+                                followUser(user.id);}} className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-full transition-colors" title="Ikuti">
                                 <UserPlus className="w-4 h-4" />
                             </button>
                         </div>

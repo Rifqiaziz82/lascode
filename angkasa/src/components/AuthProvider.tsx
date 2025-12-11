@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const audio = new Audio('/soundtrack.mp3');
+      const audio = new Audio('/soundtrack1.mp3');
       audio.loop = true;
       audio.volume = 0.3;
       audioRef.current = audio;

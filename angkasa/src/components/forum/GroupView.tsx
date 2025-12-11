@@ -15,6 +15,7 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import { Search, MoreVertical, Send, Paperclip, Smile, ArrowLeft } from 'lucide-react';
+import EmojiPicker, { Theme } from 'emoji-picker-react';
 
 interface Group {
   id: string; // ini communityId
@@ -40,6 +41,7 @@ export default function GroupView() {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
   // Scroll otomatis
@@ -52,45 +54,45 @@ export default function GroupView() {
     if (!user) return;
 
     const loadCommunities = async () => {
-  try {
-    // Ambil semua keanggotaan user
-    const membershipQuery = query(
-      collection(db, 'memberships'),
-      where('user_id', '==', user.id)
-    );
-    const membershipSnap = await getDocs(membershipQuery);
-    const communityIds = membershipSnap.docs.map(doc => doc.data().community_id);
+      try {
+        // Ambil semua keanggotaan user
+        const membershipQuery = query(
+          collection(db, 'memberships'),
+          where('user_id', '==', user.id)
+        );
+        const membershipSnap = await getDocs(membershipQuery);
+        const communityIds = membershipSnap.docs.map(doc => doc.data().community_id);
 
-    if (communityIds.length === 0) {
-      setGroups([]);
-      return;
-    }
+        if (communityIds.length === 0) {
+          setGroups([]);
+          return;
+        }
 
-    // Ambil data komunitas berdasarkan document ID
-    const communityDocs = await Promise.all(
-      communityIds.map(id => getDoc(doc(db, 'communities', id)))
-    );
+        // Ambil data komunitas berdasarkan document ID
+        const communityDocs = await Promise.all(
+          communityIds.map(id => getDoc(doc(db, 'communities', id)))
+        );
 
-    // Bangun daftar grup
-    const groupList: Group[] = communityDocs
-      .filter(doc => doc.exists()) // hanya yang ditemukan
-      .map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          name: data.name || 'Komunitas',
-          lastMessage: 'Gabung untuk diskusi',
-          time: '',
-          unread: 0,
-          memberCount: data.members_count || 0,
-        };
-      });
+        // Bangun daftar grup
+        const groupList: Group[] = communityDocs
+          .filter(doc => doc.exists()) // hanya yang ditemukan
+          .map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              name: data.name || 'Komunitas',
+              lastMessage: 'Gabung untuk diskusi',
+              time: '',
+              unread: 0,
+              memberCount: data.members_count || 0,
+            };
+          });
 
-    setGroups(groupList);
-  } catch (err) {
-    console.error('Gagal muat komunitas:', err);
-  }
-};
+        setGroups(groupList);
+      } catch (err) {
+        console.error('Gagal muat komunitas:', err);
+      }
+    };
 
     loadCommunities();
   }, [user]);
@@ -138,6 +140,11 @@ export default function GroupView() {
     }
   };
 
+  const onEmojiClick = (emojiObject: any) => {
+    setMessage((prev) => prev + emojiObject.emoji);
+    setShowEmojiPicker(false);
+  };
+
   // 🕒 Format waktu
   const formatTime = (ts: any) => {
     if (!ts?.toDate) return 'Baru saja';
@@ -163,40 +170,39 @@ export default function GroupView() {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-            {groups.length === 0 ? (
-                <div className="p-4 text-center text-slate-500">Belum ada komunitas.</div>
-            ) : (
-                groups
-                .filter(group =>
-                    group.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
-                )
-                .map((group) => (
-                    <div
-                    key={group.id}
-                    onClick={() => setSelectedGroup(group)}
-                    className={`p-4 flex items-center gap-3 cursor-pointer hover:bg-slate-700/30 transition-colors ${
-                        selectedGroup?.id === group.id ? 'bg-slate-700/40' : ''
+          {groups.length === 0 ? (
+            <div className="p-4 text-center text-slate-500">Belum ada komunitas.</div>
+          ) : (
+            groups
+              .filter(group =>
+                group.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
+              )
+              .map((group) => (
+                <div
+                  key={group.id}
+                  onClick={() => setSelectedGroup(group)}
+                  className={`p-4 flex items-center gap-3 cursor-pointer hover:bg-slate-700/30 transition-colors ${selectedGroup?.id === group.id ? 'bg-slate-700/40' : ''
                     }`}
-                    >
-                    <div className="w-12 h-12 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
-                        <span className="font-bold text-slate-300">{group.name.charAt(0)}</span>
+                >
+                  <div className="w-12 h-12 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
+                    <span className="font-bold text-slate-300">{group.name.charAt(0)}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline mb-1">
+                      <h3 className="font-medium text-slate-200 truncate">{group.name}</h3>
+                      <span className="text-xs text-slate-500">{group.time}</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-baseline mb-1">
-                        <h3 className="font-medium text-slate-200 truncate">{group.name}</h3>
-                        <span className="text-xs text-slate-500">{group.time}</span>
-                        </div>
-                        <p className="text-sm text-slate-400 truncate">{group.lastMessage}</p>
+                    <p className="text-sm text-slate-400 truncate">{group.lastMessage}</p>
+                  </div>
+                  {group.unread > 0 && (
+                    <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+                      <span className="text-xs font-bold text-white">{group.unread}</span>
                     </div>
-                    {group.unread > 0 && (
-                        <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
-                        <span className="text-xs font-bold text-white">{group.unread}</span>
-                        </div>
-                    )}
-                    </div>
-                ))
-            )}
-            </div>
+                  )}
+                </div>
+              ))
+          )}
+        </div>
       </div>
 
       {/* Chat Area */}
@@ -230,18 +236,32 @@ export default function GroupView() {
               <span className="px-3 py-1 bg-slate-800/50 rounded-full text-xs text-slate-500">Hari ini</span>
             </div>
 
-            {messages.map((msg) => (
-              <div key={msg.id} className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-slate-700 flex-shrink-0"></div>
-                <div className="bg-slate-800 p-3 rounded-lg rounded-tl-none max-w-[80%]">
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <span className="text-xs font-medium text-blue-400">{msg.sender_name}</span>
+            {messages.map((msg) => {
+              const isMe = msg.sender_id === user.id;
+              return (
+                <div key={msg.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
+                  {!isMe && (
+                    <div className="w-8 h-8 rounded-full bg-slate-700 flex-shrink-0"></div>
+                  )}
+                  <div
+                    className={`p-3 rounded-lg max-w-[80%] ${isMe
+                      ? 'bg-blue-600 rounded-tr-none'
+                      : 'bg-slate-800 rounded-tl-none'
+                      }`}
+                  >
+                    {!isMe && (
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="text-xs font-medium text-blue-400">{msg.sender_name}</span>
+                      </div>
+                    )}
+                    <p className={`text-sm ${isMe ? 'text-white' : 'text-slate-300'}`}>{msg.content}</p>
+                    <span className={`text-xs mt-1 block ${isMe ? 'text-blue-200' : 'text-slate-500'}`}>
+                      {formatTime(msg.timestamp)}
+                    </span>
                   </div>
-                  <p className="text-slate-300 text-sm">{msg.content}</p>
-                  <span className="text-xs text-slate-500 mt-1 block">{formatTime(msg.timestamp)}</span>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <div ref={messagesEndRef} />
           </div>
 
@@ -259,9 +279,19 @@ export default function GroupView() {
                 placeholder="Ketik pesan..."
                 className="flex-1 px-4 py-2.5 bg-slate-900/50 border border-slate-700/50 rounded-full text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
-              <button className="p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-700/50">
-                <Smile className="w-5 h-5" />
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                  className="p-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-700/50"
+                >
+                  <Smile className="w-5 h-5" />
+                </button>
+                {showEmojiPicker && (
+                  <div className="absolute bottom-12 right-0 z-50">
+                    <EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.DARK} />
+                  </div>
+                )}
+              </div>
               <button
                 onClick={handleSend}
                 disabled={!message.trim()}
