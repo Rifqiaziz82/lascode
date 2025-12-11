@@ -1,14 +1,20 @@
-import { Search, UserPlus, TrendingUp } from 'lucide-react';
+import { UserPlus, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, getDoc, doc, setDoc,arrayUnion, query, where, limit } from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc, setDoc, arrayUnion } from 'firebase/firestore';
 import { useAuth } from '../AuthProvider';
-
 
 interface ForumRightSidebarProps {
     onSearch: (query: string) => void;
     onSearchClick?: () => void;
+}
+
+interface FirestoreUser {
+  id: string;
+  name?: string;      // optional karena mungkin belum diisi
+  role?: string;      // optional
+  // tambahkan field lain jika ada
 }
 
 const popularSearches = [
@@ -20,39 +26,39 @@ const popularSearches = [
     "Beasiswa KIP Kuliah"
 ];
 
-const suggestedUsers = [
-    { id: 1, name: "Sarah Amalia", role: "Mahasiswa UI", avatar: "S" },
-    { id: 2, name: "Rizky Ramadhan", role: "Frontend Dev", avatar: "R" },
-    { id: 3, name: "Dina Kusuma", role: "Awardee LPDP", avatar: "D" },
-];
-
 export default function ForumRightSidebar({ onSearch, onSearchClick }: ForumRightSidebarProps) {
     const { user } = useAuth();
+    // ✅ State ini yang dipakai
     const [suggestedUsers, setSuggestedUsers] = useState<{ id: string; name: string; role: string; avatar: string }[]>([]);
     const navigate = useNavigate();
 
-    useEffect(() => {
+   useEffect(() => {
   const loadSuggestedUsers = async () => {
     if (!user) return;
 
     try {
-      // Ambil user lain (bukan diri sendiri), maks 3
-      const q = query(
-        collection(db, 'users'),
-        where('id', '!=', user.id),
-        limit(3)
-      );
-      const snapshot = await getDocs(q);
-      const users = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          name: data.name || 'User',
-          role: data.role || 'Member', // pastikan field 'role' ada di Firestore
-          avatar: data.name?.charAt(0).toUpperCase() || 'U',
-        };
-      });
-      setSuggestedUsers(users);
+      // ✅ Ambil SEMUA user
+      const snapshot = await getDocs(collection(db, 'users'));
+      
+      // ✅ Filter di client: bukan diri sendiri, acak, ambil 3
+      const allUsers = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))as FirestoreUser[];
+
+      const others = allUsers
+        .filter(u => u.id !== user.id)           // bukan diri sendiri
+        .sort(() => 0.5 - Math.random())          // acak urutan
+        .slice(0, 3);                             // ambil 3
+
+      const formatted = others.map(u => ({
+        id: u.id,
+        name: u.name || 'User',
+        role: u.role || 'Member',
+        avatar: (u.name?.charAt(0) || 'U').toUpperCase(),
+      }));
+
+      setSuggestedUsers(formatted);
     } catch (err) {
       console.error('Gagal muat saran user:', err);
     }

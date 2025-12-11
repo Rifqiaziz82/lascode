@@ -224,8 +224,8 @@ export default function CommunityView() {
         onClick={() => setViewMode('join')}
         className="flex flex-col items-center justify-center p-8 bg-slate-800/30 border border-slate-600/30 rounded-xl hover:bg-slate-700/40 transition-all group"
       >
-        <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-          <Users className="w-8 h-8 text-green-400" />
+        <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+          <Users className="w-8 h-8 text-blue-400" />
         </div>
         <h3 className="text-xl font-bold text-slate-200 mb-2">Gabung Komunitas</h3>
         <p className="text-slate-400 text-center">Temukan komunitas yang sesuai dengan minatmu.</p>

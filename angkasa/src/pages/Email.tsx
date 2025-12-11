@@ -197,22 +197,22 @@ export default function Email() {
                       <div
                         key={cert.id}
                         onClick={() => navigate(`/email/accepted/${cert.id}`)}
-                        className="bg-slate-800/30 backdrop-blur-md rounded-xl border border-slate-600/30 overflow-hidden cursor-pointer hover:border-green-500/50 transition-colors"
+                        className="bg-slate-800/30 backdrop-blur-md rounded-xl border border-slate-600/30 overflow-hidden cursor-pointer hover:border-blue-500/50 transition-colors"
                       >
                         <div className="p-5">
                           <div className="flex items-start gap-4">
-                            <div className="p-3 rounded-lg bg-green-500/10">
+                            <div className="p-3 rounded-lg bg-blue-500/10">
                               {cert.icon === "trophy" ? (
-                                <Trophy className="w-6 h-6 text-green-400" />
+                                <Trophy className="w-6 h-6 text-blue-400" />
                               ) : cert.icon === "medal" ? (
-                                <Medal className="w-6 h-6 text-green-400" />
+                                <Medal className="w-6 h-6 text-blue-400" />
                               ) : (
-                                <Star className="w-6 h-6 text-green-400" />
+                                <Star className="w-6 h-6 text-blue-400" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="px-2 py-0.5 bg-green-500/20 text-green-300 text-xs font-medium rounded">
+                                <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs font-medium rounded">
                                   <CheckCircleIcon className="w-3 h-3 inline mr-1" />
                                   Diterima
                                 </span>
@@ -251,12 +251,12 @@ export default function Email() {
                           key={email.id}
                           onClick={() => navigate(`/email/${email.id}`)}
                           className={`p-4 hover:bg-slate-700/30 transition-colors cursor-pointer ${
-                            !email.read ? "bg-slate-800/50 border-l-4 border-green-500" : ""
+                            !email.read ? "bg-slate-800/50 border-l-4 border-blue-500" : ""
                           }`}
                         >
                           <div className="flex items-start gap-3">
                             <div className="mt-1">
-                              <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
@@ -269,7 +269,7 @@ export default function Email() {
                             </div>
                             <div className="text-right">
                               <span className={`text-xs ${
-                                email.read ? "text-slate-500" : "text-green-400 font-medium"
+                                email.read ? "text-slate-500" : "text-blue-400 font-medium"
                               }`}>
                                 {email.time}
                               </span>

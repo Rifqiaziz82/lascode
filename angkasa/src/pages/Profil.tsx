@@ -433,7 +433,7 @@ export default function Profile() {
                 className={`px-4 py-2 rounded-lg font-medium ${
                   isSaving
                     ? "bg-slate-700 text-slate-400 cursor-not-allowed"
-                    : "bg-green-600 hover:bg-green-500 text-white"
+                    : "bg-blue-600 hover:bg-blue-500 text-white"
                 }`}
               >
                 {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
@@ -526,7 +526,7 @@ export default function Profile() {
               onClick={addCertificate}
               disabled={isAddingCert}
               className={`w-full py-2 font-medium rounded-lg ${
-                isAddingCert ? "bg-slate-700 text-slate-400" : "bg-green-600 hover:bg-green-500 text-white"
+                isAddingCert ? "bg-slate-700 text-slate-400" : "bg-blue-600 hover:bg-blue-500 text-white"
               }`}
             >
               {isAddingCert ? "Menyimpan..." : "Tambah Sertifikat"}
@@ -545,7 +545,7 @@ export default function Profile() {
                   key={ach.id}
                   className={`p-4 rounded-lg border flex flex-col items-center gap-2 ${
                     ach.is_unlocked
-                      ? "bg-green-500/10 border-green-500/30"
+                      ? "bg-blue-500/10 border-blue-500/30"
                       : "bg-slate-700/20 border-slate-600/40 opacity-70"
                   }`}
                 >
@@ -673,7 +673,7 @@ export default function Profile() {
                             
                             {/* History */}
                             <div className="space-y-4 border-l border-slate-700 pl-6 h-[400px] overflow-y-auto">
-                                <h4 className="font-semibold text-green-400">Riwayat Laporan</h4>
+                                <h4 className="font-semibold text-blue-400">Riwayat Laporan</h4>
                                 {myReports.length === 0 ? (
                                     <p className="text-slate-500 text-sm italic">Belum ada laporan yang dikirim.</p>
                                 ) : (
@@ -682,7 +682,7 @@ export default function Profile() {
                                             <div key={rep.id} className="bg-slate-900/50 p-3 rounded border border-slate-700/50">
                                                 <div className="flex justify-between items-start mb-2">
                                                     <span className="text-white font-medium text-sm">{rep.issue}</span>
-                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${rep.status === 'Selesai' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${rep.status === 'Selesai' ? 'bg-blue-500/20 text-blue-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                                                         {rep.status}
                                                     </span>
                                                 </div>

@@ -21,27 +21,29 @@ export default function CentralUsers() {
     const [activeTab, setActiveTab] = useState<'all' | 'user' | 'provider'>('all');
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-    const userStats = [
-        { label: 'Total Pengguna', value: '2,543', change: '+5%', icon: Users, color: 'text-purple-400' },
-        { label: 'Total Pelajar', value: '2,100', change: '+4%', icon: GraduationCap, color: 'text-pink-400' },
-        { label: 'Admin Provider', value: '45', change: '+2', icon: Building2, color: 'text-orange-400' },
-    ];
-
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState({
+        total: 0,
+        pelajar: 0,
+        provider: 0
+    });
 
     useEffect(() => {
         const fetchUsers = async () => {
             try {
+                // 1. Fetch Standard Users from Firestore
                 const querySnapshot = await getDocs(collection(db, 'users'));
                 const fetchedUsers: User[] = [];
+                let pelajarCount = 0;
+                
                 querySnapshot.forEach((doc) => {
                     const data = doc.data();
                     fetchedUsers.push({
-                        id: doc.id as any, // ID string in firestore
+                        id: doc.id as any,
                         name: data.name || 'No Name',
                         email: data.email || '',
-                        role: data.role || 'Pelajar', // Default role
+                        role: 'Pelajar', // Force role for Firestore users
                         status: data.status || 'Aktif',
                         joined: data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'N/A',
                         phone: data.phone || '-',
@@ -49,8 +51,43 @@ export default function CentralUsers() {
                         bio: data.bio || '',
                         location: data.location || '-'
                     });
+                    pelajarCount++;
                 });
+
+                // 2. Fetch Admin Providers from Realtime Database
+                const { ref, get } = await import('firebase/database'); // Dynamic import to ensure rtdb is available
+                const { rtdb } = await import('../../firebase');
+                
+                const adminRef = ref(rtdb, 'admins');
+                const adminSnapshot = await get(adminRef);
+                
+                let providerCount = 0;
+
+                if (adminSnapshot.exists()) {
+                    adminSnapshot.forEach((childSnapshot) => {
+                        const data = childSnapshot.val();
+                        fetchedUsers.push({
+                            id: data.uid || childSnapshot.key,
+                            name: data.name || 'Admin Provider',
+                            email: data.email || '',
+                            role: 'Provider', // Force role for RTDB admins
+                            status: 'Aktif', // Assume active if in DB
+                            joined: data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'N/A',
+                            phone: '-',
+                            lastLogin: data.lastLogin ? new Date(data.lastLogin).toLocaleDateString() : '-',
+                            bio: 'Admin Provider Account',
+                            location: '-'
+                        });
+                        providerCount++;
+                    });
+                }
+
                 setUsers(fetchedUsers);
+                setStats({
+                    total: fetchedUsers.length,
+                    pelajar: pelajarCount,
+                    provider: providerCount
+                });
             } catch (err) {
                 console.error("Error fetching users:", err);
             } finally {
@@ -76,6 +113,12 @@ export default function CentralUsers() {
         return matchesSearch;
     });
 
+    const userStats = [
+        { label: 'Total Pengguna', value: stats.total.toLocaleString(), change: 'Live', icon: Users, color: 'text-purple-400' },
+        { label: 'Total Pelajar', value: stats.pelajar.toLocaleString(), change: 'Live', icon: GraduationCap, color: 'text-pink-400' },
+        { label: 'Admin Provider', value: stats.provider.toLocaleString(), change: 'Live', icon: Building2, color: 'text-orange-400' },
+    ];
+
     return (
         <AdminLayout role="central">
             <div className="space-y-8">
@@ -94,7 +137,7 @@ export default function CentralUsers() {
                                     <div className={`p-3 rounded-lg bg-slate-700/50 ${stat.color}`}>
                                         <Icon size={24} />
                                     </div>
-                                    <span className="text-sm font-medium text-green-400 bg-green-400/10 px-2.5 py-1 rounded-full">
+                                    <span className="text-sm font-medium text-blue-400 bg-blue-400/10 px-2.5 py-1 rounded-full">
                                         {stat.change}
                                     </span>
                                 </div>

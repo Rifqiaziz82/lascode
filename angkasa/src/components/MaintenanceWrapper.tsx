@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
+import { useMaintenance } from '../config/maintenance';
 import { useAuth } from './AuthProvider';
 
 interface MaintenanceWrapperProps {
@@ -12,29 +11,7 @@ export default function MaintenanceWrapper({ children }: MaintenanceWrapperProps
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-
-  // Default config just in case
-  const [config, setConfig] = useState({
-    user: false,
-    dashAdmin: false,
-    adminCentral: false
-  });
-
-  useEffect(() => {
-    // Subscribe to maintenance settings
-    const unsubscribe = onSnapshot(doc(db, 'settings', 'maintenance'), (doc) => {
-      if (doc.exists()) {
-        setConfig(doc.data() as any);
-      }
-      setLoading(false);
-    }, (error) => {
-        console.error("Error fetching maintenance settings:", error);
-        setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
+  const { config, loading } = useMaintenance();
 
   useEffect(() => {
     if (loading) return;
@@ -42,39 +19,48 @@ export default function MaintenanceWrapper({ children }: MaintenanceWrapperProps
     const path = location.pathname;
     let isMaintenance = false;
 
+    // Define whitelist paths (Always accessible)
+    const whitelist = [
+        '/maintenance', 
+        '/admin/central/login', 
+        '/admin/provider/login', 
+        '/login', 
+        '/register' // Optional: decide if registration is allowed during maintenance
+    ];
+
+    // If current path is in whitelist, skip checks
+    if (whitelist.some(p => path === p || path.startsWith(p + '/'))) { // Basic whitelist check
+         // Double check if we are on maintenance page but maintenance is OFF -> redirect to home
+         if (path === '/maintenance' && !config.user && !config.dashAdmin && !config.adminCentral) {
+             navigate('/');
+         }
+         return;
+    }
+
     // Determine if current route is under maintenance based on role/path
     if (path.startsWith('/admin/central')) {
         if (config.adminCentral) isMaintenance = true;
     } else if (path.startsWith('/DashAdmin')) {
         if (config.dashAdmin) isMaintenance = true;
+    } else if (path.startsWith('/admin/provider')) {
+         // Assuming provider might have its own or share one? 
+         // For now, let's treat provider as DashAdmin or add a new key if needed.
+         // Based on UI, there isn't a "Provider" toggle, only DashAdmin.
+         // Let's assume Provider is safe or falls under DashAdmin? 
+         // Safety: If no specific toggle, maybe it's open.
     } else {
-        // General user routes (exclude login/register/maintenance to avoid loops)
-        const publicRoutes = ['/login', '/register', '/maintenance', '/'];
-        // Allow landing page usually? The user said "pengunjung situs website", usually implies the main app.
-        // Let's assume general user maintenance blocks everything except landing? Or maybe just the app parts.
-        // For safety, let's block everything except auth if maintenance is on.
-        // Actually, usually Landing is open, but App is closed.
-        // Let's assume if it's NOT a special admin route, it's "user" scope.
-        if (config.user && !path.startsWith('/maintenance') && !path.startsWith('/admin') && !path.startsWith('/DashAdmin')) {
-            // Allow login/register even in maintenance? Maybe not.
-            // Usually maintenance means "Site Down".
-            // Let's allow admins to bypass if they are logged in maybe?
-            // The request didn't specify bypass logic, just "block".
-            // We will redirect to /maintenance.
+        // General user routes (everything else)
+        if (config.user) {
             isMaintenance = true;
         }
     }
 
     // Redirect to maintenance page if needed
-    if (isMaintenance && location.pathname !== '/maintenance') {
+    if (isMaintenance) {
+      console.log(`Access denied to ${path} due to maintenance mode.`);
       navigate('/maintenance');
     }
     
-    // Redirect OUT of maintenance page if maintenance is OFF
-    if (!isMaintenance && location.pathname === '/maintenance') {
-        navigate('/');
-    }
-
   }, [config, location.pathname, loading, navigate]);
 
   if (loading) return null; // Or a spinner

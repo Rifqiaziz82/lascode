@@ -8,8 +8,9 @@ import {
     Cpu,
     HardDrive
 } from 'lucide-react';
-import { doc, onSnapshot, updateDoc, setDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { useMaintenance } from '../../config/maintenance';
 
 export default function CentralDashboard() {
     const [loading, setLoading] = useState(true);
@@ -19,14 +20,17 @@ export default function CentralDashboard() {
     });
     
     // Settings State
-    const [maintenance, setMaintenance] = useState({
-        user: false,
-        dashAdmin: false,
-        adminCentral: false
-    });
+    const { config: maintenance, toggleMaintenance } = useMaintenance();
+
     const [registration, setRegistration] = useState({
         allowRegistration: true,
         maxUsers: 1000
+    });
+
+    const [serverData, setServerData] = useState({
+        cpu: '24%',
+        memory: '4.2GB',
+        storage: '45%'
     });
 
     useEffect(() => {
@@ -53,19 +57,8 @@ export default function CentralDashboard() {
 
         fetchStats();
 
-        // 2. Subscribe to Maintenance Settings
-        const unsubMaintenance = onSnapshot(doc(db, 'settings', 'maintenance'), (docSnap) => {
-            if (docSnap.exists()) {
-                setMaintenance(docSnap.data() as any);
-            } else {
-                // Initialize if missing
-                setDoc(doc(db, 'settings', 'maintenance'), {
-                    user: false,
-                    dashAdmin: false,
-                    adminCentral: false
-                });
-            }
-        });
+        // 2. Subscribe to Maintenance Settings - REPLACED BY HOOK
+        // const unsubMaintenance = ...
 
         // 3. Subscribe to Registration Settings
         const unsubRegistration = onSnapshot(doc(db, 'settings', 'registration'), (docSnap) => {
@@ -79,24 +72,30 @@ export default function CentralDashboard() {
             }
         });
 
+        // 4. Subscribe to Server Status
+        const unsubServer = onSnapshot(doc(db, 'status', 'server'), (docSnap) => {
+            if (docSnap.exists()) {
+                setServerData(docSnap.data() as any);
+            } else {
+                // Initialize default if missing
+                const defaultServer = {
+                    cpu: '15%',
+                    memory: '2.4GB',
+                    storage: '40%'
+                };
+                setDoc(doc(db, 'status', 'server'), defaultServer);
+                setServerData(defaultServer);
+            }
+        });
+
         setLoading(false);
 
         return () => {
-            unsubMaintenance();
+            // unsubMaintenance();
             unsubRegistration();
+            unsubServer();
         };
     }, []);
-
-    const toggleMaintenance = async (key: 'user' | 'dashAdmin' | 'adminCentral') => {
-        try {
-            await updateDoc(doc(db, 'settings', 'maintenance'), {
-                [key]: !maintenance[key]
-            });
-        } catch (err) {
-            console.error("Failed to update maintenance:", err);
-            alert("Gagal update maintenance mode");
-        }
-    };
 
     const toggleRegistration = async () => {
         try {
@@ -110,14 +109,14 @@ export default function CentralDashboard() {
 
     const performanceStats = [
         { label: 'Total Pengunjung', value: stats.totalUsers.toLocaleString(), change: '+12% (30d)', icon: TrendingUp, color: 'text-blue-400' },
-        { label: 'Pengunjung Aktif', value: stats.activeUsers.toLocaleString(), change: 'Live', icon: Globe, color: 'text-green-400' },
+        { label: 'Pengunjung Aktif', value: stats.activeUsers.toLocaleString(), change: 'Live', icon: Globe, color: 'text-blue-400' },
         { label: 'Response Time', value: '45ms', change: '-5ms', icon: Activity, color: 'text-purple-400' },
     ];
 
     const serverStats = [
-        { label: 'CPU Usage', value: '24%', status: 'Normal', icon: Cpu, color: 'text-orange-400' },
-        { label: 'Memory Usage', value: '4.2GB', status: '32%', icon: HardDrive, color: 'text-pink-400' },
-        { label: 'Storage', value: '45%', status: '240GB Free', icon: Server, color: 'text-cyan-400' },
+        { label: 'CPU Usage', value: serverData.cpu, status: 'Normal', icon: Cpu, color: 'text-orange-400' },
+        { label: 'Memory Usage', value: serverData.memory, status: 'Stable', icon: HardDrive, color: 'text-pink-400' },
+        { label: 'Storage', value: serverData.storage, status: 'Healthy', icon: Server, color: 'text-cyan-400' },
     ];
 
     if (loading) return <div className="p-8 text-white">Loading Stats...</div>;
@@ -142,7 +141,7 @@ export default function CentralDashboard() {
                                         <div className={`p-3 rounded-lg bg-slate-700/50 ${stat.color}`}>
                                             <Icon size={24} />
                                         </div>
-                                        <span className="text-sm font-medium text-green-400 bg-green-400/10 px-2.5 py-1 rounded-full">
+                                        <span className="text-sm font-medium text-blue-400 bg-blue-400/10 px-2.5 py-1 rounded-full">
                                             {stat.change}
                                         </span>
                                     </div>
@@ -245,7 +244,7 @@ export default function CentralDashboard() {
                                     </div>
                                     <button 
                                         onClick={toggleRegistration}
-                                        className={`w-11 h-6 rounded-full relative transition-colors ${registration.allowRegistration ? 'bg-green-500' : 'bg-slate-600'}`}
+                                        className={`w-11 h-6 rounded-full relative transition-colors ${registration.allowRegistration ? 'bg-blue-500' : 'bg-slate-600'}`}
                                     >
                                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${registration.allowRegistration ? 'left-6' : 'left-1'}`}></div>
                                     </button>
