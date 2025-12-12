@@ -1,5 +1,6 @@
 // src/components/AuthProvider.tsx
 import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore'; // ✅ tambahkan ini
 import { auth, db } from '../firebase'; // ✅ pastikan `db` ada
@@ -24,9 +25,9 @@ type User = {
   banner_photo?: string;
   profile_photo?: string;
   social_media?: {
-      instagram?: string;
-      youtube?: string;
-      tiktok?: string;
+    instagram?: string;
+    youtube?: string;
+    tiktok?: string;
   };
 };
 
@@ -57,15 +58,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
 
+  const location = useLocation();
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const audio = new Audio('/soundtrack3.mp3');
       audio.loop = true;
       audio.volume = 0.3;
       audioRef.current = audio;
+
+      // ❌ Jangan auto-play jika di halaman admin
+      const isAdmin = location.pathname.startsWith('/DashAdmin') || location.pathname.startsWith('/admin');
+      if (!isAdmin) {
+        // Optional: logic to auto-play if needed, but usually we wait for user interaction or login
+      }
+
       return () => audio.pause();
     }
   }, []);
+
+  // 🎵 Effect: Pause otomatis saat masuk ke halaman Admin
+  useEffect(() => {
+    const isAdmin = location.pathname.startsWith('/DashAdmin') || location.pathname.startsWith('/admin');
+    if (isAdmin && isAudioPlaying) {
+      pauseAudio();
+    }
+  }, [location.pathname, isAudioPlaying]);
 
   const playAudio = () => {
     const audio = audioRef.current;

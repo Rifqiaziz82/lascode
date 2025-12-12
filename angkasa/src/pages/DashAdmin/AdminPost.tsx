@@ -124,22 +124,20 @@ const PostForm: React.FC<{
           <button
             type="button"
             onClick={() => setType('lomba')}
-            className={`flex-1 py-2 px-3 rounded-lg border transition ${
-              type === 'lomba'
-                ? 'bg-blue-700/50 border-blue-500 text-blue-300'
-                : 'bg-gray-800 border-slate-600 text-gray-300 hover:bg-gray-700'
-            }`}
+            className={`flex-1 py-2 px-3 rounded-lg border transition ${type === 'lomba'
+              ? 'bg-blue-700/50 border-blue-500 text-blue-300'
+              : 'bg-gray-800 border-slate-600 text-gray-300 hover:bg-gray-700'
+              }`}
           >
             <Tag size={16} className="inline mr-1" /> Lomba
           </button>
           <button
             type="button"
             onClick={() => setType('beasiswa')}
-            className={`flex-1 py-2 px-3 rounded-lg border transition ${
-              type === 'beasiswa'
-                ? 'bg-purple-700/50 border-purple-500 text-purple-300'
-                : 'bg-gray-800 border-slate-600 text-gray-300 hover:bg-gray-700'
-            }`}
+            className={`flex-1 py-2 px-3 rounded-lg border transition ${type === 'beasiswa'
+              ? 'bg-purple-700/50 border-purple-500 text-purple-300'
+              : 'bg-gray-800 border-slate-600 text-gray-300 hover:bg-gray-700'
+              }`}
           >
             <Tag size={16} className="inline mr-1" /> Beasiswa
           </button>
@@ -345,7 +343,7 @@ const PostDetailBottomModal: React.FC<{
 };
 
 // ======================
-// COMPONENT: Comment Slide Panel (Aman 100%)
+// COMPONENT: Comment Slide Panel
 // ======================
 const CommentSlidePanel: React.FC<{
   post: Post;
@@ -356,9 +354,23 @@ const CommentSlidePanel: React.FC<{
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
 
-  // ✅ Filter komentar yang punya id
-  const validComments = Object.values(post.comments || {})
-    .filter(c => c && typeof c === 'object' && c.id && typeof c.id === 'string');
+  const [activeComments, setActiveComments] = useState<Record<string, any>>(post.comments || {});
+
+  useEffect(() => {
+    const commentsRef = ref(rtdb, `posts/${post.id}/comments`);
+    const unsubscribe = onValue(commentsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setActiveComments(snapshot.val());
+      } else {
+        setActiveComments({});
+      }
+    });
+    return () => unsubscribe();
+  }, [post.id]);
+
+  // Filter comments with valid IDs
+  const validComments = Object.values(activeComments || {})
+    .filter((c: any) => c && typeof c === 'object' && c.id && typeof c.id === 'string');
 
   const commentsArray = validComments.sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -396,59 +408,98 @@ const CommentSlidePanel: React.FC<{
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {commentsArray.length === 0 ? (
+          {Object.keys(validComments).length === 0 ? (
             <p className="text-gray-500 text-center py-8">Belum ada komentar.</p>
           ) : (
-            commentsArray.map((comment) => (
-              <div key={comment.id} className="bg-gray-700/30 p-3 rounded-lg">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-blue-300 text-sm">{comment.author}</span>
-                  <span className="text-xs text-gray-500">
-                    {typeof comment.timestamp === 'string'
-                      ? new Date(comment.timestamp).toLocaleString('id-ID')
-                      : '--'}
-                  </span>
-                </div>
-                <p className="text-gray-200 text-sm mb-2">{comment.text}</p>
+            (() => {
+              // Group comments by parent
+              const commentMap = new Map<string, typeof validComments>();
+              // Initialize 'root'
+              commentMap.set('root', []);
 
-                {/* ✅ Pastikan comment.id ada */}
-                {comment.id ? (
-                  <div className="flex gap-2 mt-1">
-                    <button
-                      onClick={() => setReplyingTo(comment.id)}
-                      className="text-xs text-blue-400 hover:text-blue-300"
-                    >
-                      Balas
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(comment.id)}
-                      className="text-xs text-red-400 hover:text-red-300"
-                    >
-                      Hapus
-                    </button>
-                  </div>
-                ) : null}
+              validComments.forEach(comment => {
+                const parentId = comment.parentId || 'root';
+                if (!commentMap.has(parentId)) {
+                  commentMap.set(parentId, []);
+                }
+                commentMap.get(parentId)?.push(comment);
+              });
 
-                {replyingTo === comment.id && (
-                  <div className="mt-2 flex gap-2">
-                    <input
-                      type="text"
-                      value={replyText}
-                      onChange={(e) => setReplyText(e.target.value)}
-                      placeholder="Tulis balasan..."
-                      className="flex-1 px-3 py-1.5 bg-gray-600 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      onKeyDown={(e) => e.key === 'Enter' && handleSendReply(comment.id)}
-                    />
-                    <button
-                      onClick={() => handleSendReply(comment.id)}
-                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition"
-                    >
-                      Kirim
-                    </button>
+              // Recursive render function
+              const renderComments = (parentId: string, depth: number) => {
+                const comments = commentMap.get(parentId);
+                if (!comments || comments.length === 0) return null;
+
+                // Sort by time (oldest first for chronological conversation, or newest first?)
+                // Usually comments are newest first, but replies might be oldest first.
+                // Let's stick to newest first for everything for now to match previous behavior
+                comments.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+                return (
+                  <div className={`space-y-3 ${depth > 0 ? 'ml-4 pl-4 border-l-2 border-slate-700/50 mt-2' : ''}`}>
+                    {comments.map(comment => (
+                      <div key={comment.id} className={`${depth === 0 ? 'bg-gray-700/30' : 'bg-transparent'} p-3 rounded-lg`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`font-semibold text-sm ${comment.authorId === post.authorId ? 'text-blue-400' : 'text-slate-300'}`}>
+                            {comment.author} {comment.authorId === post.authorId && '(Admin)'}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {typeof comment.timestamp === 'string'
+                              ? new Date(comment.timestamp).toLocaleString('id-ID')
+                              : '--'}
+                          </span>
+                        </div>
+                        <p className="text-gray-200 text-sm mb-2">{comment.text}</p>
+
+                        {/* Action Buttons */}
+                        {comment.id && (
+                          <div className="flex gap-3 mt-1">
+                            <button
+                              onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+                              className="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors"
+                            >
+                              {replyingTo === comment.id ? 'Batal' : 'Balas'}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(comment.id)}
+                              className="text-xs font-medium text-red-400 hover:text-red-300 transition-colors"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Reply Input Form */}
+                        {replyingTo === comment.id && (
+                          <div className="mt-3 flex gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                            <input
+                              type="text"
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder={`Balas ${comment.author}...`}
+                              autoFocus
+                              className="flex-1 px-3 py-1.5 bg-gray-900/50 border border-slate-600 text-white text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-slate-500"
+                              onKeyDown={(e) => e.key === 'Enter' && handleSendReply(comment.id)}
+                            />
+                            <button
+                              onClick={() => handleSendReply(comment.id)}
+                              className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20"
+                            >
+                              Kirim
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Nested Replies */}
+                        {renderComments(comment.id, depth + 1)}
+                      </div>
+                    ))}
                   </div>
-                )}
-              </div>
-            ))
+                );
+              };
+
+              return renderComments('root', 0);
+            })()
           )}
         </div>
       </div>
@@ -470,10 +521,19 @@ const PostCard: React.FC<{
     return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
   };
 
+  const truncateWords = (text: string, wordCount: number) => {
+    if (!text) return '';
+    const words = text.split(' ');
+    if (words.length > wordCount) {
+      return words.slice(0, wordCount).join(' ') + '...';
+    }
+    return text;
+  };
+
   return (
     <>
       {/* Mobile */}
-      <div className="sm:hidden bg-gray-800 border border-slate-700 rounded-xl p-2 flex flex-col space-y-2 hover:bg-gray-750 transition duration-200 relative">
+      <div className="sm:hidden bg-gray-800 border border-slate-700 rounded-xl p-2 flex flex-col space-y-2 hover:bg-gray-750 transition duration-200 relative h-full">
         <div className="w-full flex-shrink-0">
           <img
             src={post.imageUrl}
@@ -492,12 +552,12 @@ const PostCard: React.FC<{
           {post.tags && post.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {post.tags.slice(0, 2).map((tag, i) => (
-                <span key={i} className="px-1.5 py-0.5 bg-slate-700/40 text-slate-300 text-xs rounded">
+                <span key={i} className="px-1.5 py-0.5 bg-slate-700/40 text-slate-300 text-[10px] rounded">
                   #{tag}
                 </span>
               ))}
               {post.tags.length > 2 && (
-                <span className="px-1.5 py-0.5 bg-slate-700/40 text-slate-300 text-xs rounded">
+                <span className="px-1.5 py-0.5 bg-slate-700/40 text-slate-300 text-[10px] rounded">
                   +{post.tags.length - 2}
                 </span>
               )}
@@ -542,7 +602,7 @@ const PostCard: React.FC<{
         </div>
         <div className="flex-grow space-y-2">
           <h3 className="text-lg font-bold text-blue-400 line-clamp-1">{post.title}</h3>
-          <p className="text-sm text-gray-300 line-clamp-2">{post.description}</p>
+          <p className="text-sm text-gray-300 line-clamp-2">{truncateWords(post.description, 3)}</p>
           {post.tags && post.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {post.tags.map((tag, i) => (
@@ -572,28 +632,32 @@ const PostCard: React.FC<{
             <MessageCircle size={12} className="mr-1" />
             {post.commentCount || 0} komentar
           </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="flex items-center gap-2 mt-auto pt-2 border-t border-slate-700/50">
           <button
             onClick={() => onCommentClick?.(post)}
-            className="w-full py-1.5 mt-1 bg-slate-700/50 text-slate-300 text-xs rounded hover:bg-slate-600 transition"
+            className="flex-1 py-1.5 bg-slate-700/50 text-slate-300 text-xs rounded hover:bg-slate-600 transition"
           >
-            Lihat & Balas Komentar
+            Lihat Komentar
           </button>
-        </div>
-        <div className="absolute bottom-2 right-2 flex space-x-1 z-10">
-          <button
-            onClick={() => onEdit?.(post)}
-            className="p-1.5 bg-blue-600/80 rounded-full text-white hover:bg-blue-500"
-            aria-label="Edit"
-          >
-            <Edit size={14} />
-          </button>
-          <button
-            onClick={() => onDelete?.(post.id)}
-            className="p-1.5 bg-red-600/80 rounded-full text-white hover:bg-red-500"
-            aria-label="Hapus"
-          >
-            <Trash2 size={14} />
-          </button>
+          <div className="flex gap-1">
+            <button
+              onClick={() => onEdit?.(post)}
+              className="p-1.5 bg-blue-600/20 text-blue-400 rounded hover:bg-blue-600 hover:text-white transition"
+              aria-label="Edit"
+            >
+              <Edit size={14} />
+            </button>
+            <button
+              onClick={() => onDelete?.(post.id)}
+              className="p-1.5 bg-red-600/20 text-red-400 rounded hover:bg-red-600 hover:text-white transition"
+              aria-label="Hapus"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
       </div>
     </>
@@ -639,10 +703,9 @@ const AdminPost: React.FC = () => {
           if (globalData.comments) {
             for (const [key, comment] of Object.entries(globalData.comments)) {
               if (comment && typeof comment === 'object') {
-                // ✅ Selalu pastikan comment punya id
                 safeComments[key] = {
-                  ...comment,
-                  id: comment.id || key, // fallback ke key jika id hilang
+                  ...(comment as any),
+                  id: (comment as any).id || key,
                 };
               }
             }
@@ -672,11 +735,10 @@ const AdminPost: React.FC = () => {
     loadPosts();
   }, [loadPosts]);
 
-  // 🔥 Balas Komentar (Aman)
+  // Reply to Comment
   const handleReplyToComment = async (postId: string, replyText: string, parentId: string) => {
     const currentUser = auth.currentUser;
     if (!currentUser || !postId || !parentId || !replyText.trim()) {
-      console.warn('❌ Invalid reply data:', { postId, parentId, replyText });
       return;
     }
 
@@ -692,7 +754,7 @@ const AdminPost: React.FC = () => {
         authorId: currentUser.uid,
         text: replyText.trim(),
         timestamp: serverTimestamp() as unknown as string,
-        parentId: parentId, // ✅ pasti string
+        parentId: parentId,
       });
     } catch (error) {
       console.error('Error replying to comment:', error);
@@ -700,7 +762,7 @@ const AdminPost: React.FC = () => {
     }
   };
 
-  // 🔥 Hapus Komentar
+  // Delete Comment
   const handleDeleteComment = async (postId: string, commentId: string) => {
     if (!postId || !commentId) return;
     try {
@@ -779,6 +841,10 @@ const AdminPost: React.FC = () => {
   };
 
   const handleDeletePost = async (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus postingan ini? Tindakan ini tidak dapat dibatalkan.')) {
+      return;
+    }
+
     try {
       await remove(ref(rtdb, `admins/${auth.currentUser?.uid}/posts/${id}`));
       await remove(ref(rtdb, `posts/${id}`));
@@ -798,9 +864,21 @@ const AdminPost: React.FC = () => {
 
   return (
     <div className="space-y-6 relative min-h-screen pb-24 p-4 sm:p-6">
-      <h1 className="text-2xl md:text-3xl font-extrabold text-white border-b border-slate-700 pb-3">
-        Daftar Postingan ({posts.length})
-      </h1>
+      <div className="flex justify-between items-center border-b border-slate-700 pb-3">
+        <h1 className="text-2xl md:text-3xl font-extrabold text-white">
+          Daftar Postingan ({posts.length})
+        </h1>
+        <button
+          onClick={() => {
+            setPostToEdit(null); // Reset form mode to 'add'
+            setIsModalOpen(true);
+          }}
+          className="hidden sm:flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition shadow-lg shadow-blue-900/20"
+        >
+          <Plus size={20} />
+          <span>Tambah Postingan</span>
+        </button>
+      </div>
 
       {posts.length === 0 ? (
         <div className="text-center py-12">
@@ -814,13 +892,16 @@ const AdminPost: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {posts.map((post) => (
-            <div key={post.id} className="col-span-1">
+            <div key={post.id} className="col-span-1 h-full">
               <PostCard
                 post={post}
                 onMoreClick={setSelectedPostForDetail}
-                onEdit={setPostToEdit}
+                onEdit={(post) => {
+                  setPostToEdit(post);
+                  setIsModalOpen(true);
+                }}
                 onDelete={handleDeletePost}
                 onCommentClick={setSelectedPostForComments}
               />
@@ -831,7 +912,10 @@ const AdminPost: React.FC = () => {
 
       <div className="fixed sm:hidden bottom-6 right-6 z-10">
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setPostToEdit(null); // Reset form mode to 'add'
+            setIsModalOpen(true);
+          }}
           className="p-4 bg-blue-600 rounded-full text-white shadow-lg hover:bg-blue-500 transition"
           aria-label="Tambah Postingan"
         >
@@ -857,7 +941,10 @@ const AdminPost: React.FC = () => {
         <PostDetailBottomModal
           post={selectedPostForDetail}
           onClose={() => setSelectedPostForDetail(null)}
-          onEdit={setPostToEdit}
+          onEdit={(post) => {
+            setPostToEdit(post);
+            setIsModalOpen(true);
+          }}
           onDelete={handleDeletePost}
         />
       )}
@@ -866,7 +953,7 @@ const AdminPost: React.FC = () => {
         <CommentSlidePanel
           post={selectedPostForComments}
           onClose={() => setSelectedPostForComments(null)}
-          onReply={handleReplyToComment}
+          onReply={(text, parentId) => handleReplyToComment(selectedPostForComments.id, text, parentId)}
           onDeleteComment={(commentId) => handleDeleteComment(selectedPostForComments.id, commentId)}
         />
       )}

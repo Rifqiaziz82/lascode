@@ -11,8 +11,13 @@ export interface Post {
   closingDate: Date;
   registrationLink: string;
   type: 'lomba' | 'beasiswa';
-  tags: string[]; 
+  tags: string[];
   createdAt: Date;
+  // Extended properties
+  comments?: Record<string, any>;
+  commentCount?: number;
+  authorId?: string;
+  author?: string; // Optional: often used for display
 }
 
 // Utility: simulate unique ID 

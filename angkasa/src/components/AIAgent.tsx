@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bot, Send, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 interface Message {
     id: string;
@@ -25,6 +26,12 @@ export default function AIAgent() {
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
+
+    const location = useLocation();
+
+    // ❌ Jangan tampilkan di halaman Admin
+    const isAdminPage = location.pathname.startsWith('/DashAdmin') || location.pathname.startsWith('/admin');
+    if (isAdminPage) return null;
 
     useEffect(() => {
         scrollToBottom();
@@ -115,11 +122,10 @@ export default function AIAgent() {
                                 className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
                                 <div
-                                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                                        msg.sender === 'user'
-                                            ? 'bg-indigo-600 text-white rounded-br-none'
-                                            : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-bl-none'
-                                    }`}
+                                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${msg.sender === 'user'
+                                        ? 'bg-indigo-600 text-white rounded-br-none'
+                                        : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-bl-none'
+                                        }`}
                                 >
                                     {msg.text}
                                 </div>
@@ -171,11 +177,10 @@ export default function AIAgent() {
             {/* Floating Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`group relative flex items-center justify-center w-12 h-12 lg:w-14 lg:h-14 rounded-full shadow-lg transition-all duration-300 hover:scale-110 ${
-                    isOpen
-                        ? 'bg-slate-700 text-slate-300 rotate-90'
-                        : 'bg-gradient-to-br from-slate-500 via-blue-500 to-blue-500 text-white animate-bounce-slow'
-                }`}
+                className={`group relative flex items-center justify-center w-12 h-12 lg:w-14 lg:h-14 rounded-full shadow-lg transition-all duration-300 hover:scale-110 ${isOpen
+                    ? 'bg-slate-700 text-slate-300 rotate-90'
+                    : 'bg-gradient-to-br from-slate-500 via-blue-500 to-blue-500 text-white animate-bounce-slow'
+                    }`}
             >
                 {/* Glow Effect */}
                 {!isOpen && (
