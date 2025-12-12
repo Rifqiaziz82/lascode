@@ -31,18 +31,20 @@ function App() {
       <AuthProvider> 
         {/* Background layers */}
         <div className="fixed inset-0 z-[-2] bg-black"></div>
-        <div className="fixed inset-0 z-[-1] pointer-events-none">
-          <Particles
-            particleCount={150}
-            particleSpread={8}
-            speed={0.08}
-            particleColors={['#ffffff']}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950">
+          <Particles 
+            particleCount={100} 
+            particleSpread={15} 
+            speed={0.15} 
+            particleColors={['#3b82f6', '#8b5cf6']}
             moveParticlesOnHover={true}
-            alphaParticles={false}
-            particleBaseSize={60}
+            particleHoverFactor={2}
+            alphaParticles={true}
+            particleBaseSize={100}
+            sizeRandomness={1}
+            cameraDistance={25}
             disableRotation={false}
-            className="w-full h-full"
-          />
+         />
         </div>
 
         {/* Main layout */}

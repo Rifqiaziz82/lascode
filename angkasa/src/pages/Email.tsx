@@ -4,12 +4,18 @@ import { useAuth } from "../components/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import DashboardHeader from "../components/DashboardHeader";
 import {
-  Mail,
   Inbox,
-  CheckCircle as CheckCircleIcon,
+  CheckCircle,
   Paperclip,
-  Search as SearchIcon,
+  Search,
+  Star,
+  Trophy,
+  Medal,
+  Play,
+  ChevronRight
 } from "lucide-react";
+import Particles from "../components/Particles";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Email masuk
 const mockEmails = [
@@ -80,7 +86,7 @@ const mockAcceptedCerts = [
 ];
 
 export default function Email() {
-  const { user } = useAuth();
+  const { user, isAudioPlaying, togglePlay } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"inbox" | "starred" | "accepted">("inbox");
   const [searchQuery, setSearchQuery] = useState("");
@@ -108,208 +114,233 @@ export default function Email() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen pb-20">
+    <div className="relative min-h-screen bg-slate-950 text-slate-200 selection:bg-blue-500/30 overflow-x-hidden">
+      {/* Background Particles */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+         <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950" />
+         <Particles 
+            particleCount={80} 
+            particleSpread={10} 
+            speed={0.1} 
+            particleColors={['#60a5fa', '#a78bfa']}
+            moveParticlesOnHover={true}
+            particleHoverFactor={2}
+            alphaParticles={true}
+            particleBaseSize={100}
+            sizeRandomness={1}
+            cameraDistance={20}
+            disableRotation={false}
+         />
+      </div>
+
       <DashboardHeader />
 
-      <main className="container mx-auto px-4 sm:px-6 pt-24">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="flex flex-col items-center justify-center mb-8">
-            <div className=" rounded-xl border border-4 border-slate-600/30 px-8 py-5 shadow-lg">
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Mail className="w-6 h-6 text-slate-300" />
-                  <h1 className="text-2xl font-bold text-slate-200">Email</h1>
+      {/* Music Control - Floating */}
+      <div className="fixed bottom-6 left-6 z-50">
+        <button
+          onClick={togglePlay}
+          className="group flex items-center gap-3 pr-5 pl-3 py-3 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-full shadow-2xl hover:shadow-blue-500/20 transition-all duration-300"
+          title={isAudioPlaying ? 'Jeda musik' : 'Putar musik'}
+        >
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-slate-600 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+             {isAudioPlaying ? (
+                <div className="flex gap-1 items-end h-4">
+                  <span className="w-1 bg-white h-2 animate-music-bar-1"></span>
+                  <span className="w-1 bg-white h-4 animate-music-bar-2"></span>
+                  <span className="w-1 bg-white h-3 animate-music-bar-3"></span>
                 </div>
-                <p className="text-slate-400">Jangan lupa untuk mengecek pesan emailmu!</p>
+             ) : (
+                <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
+             )}
+          </div>
+          <div className="flex flex-col text-left">
+             <span className="text-[10px] text-slate-400">{isAudioPlaying ? 'Playing' : 'Paused'}</span>
+          </div>
+        </button>
+      </div>
+
+      <main className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl pt-28 pb-12">
+        <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-white mb-2">Kotak Masuk</h1>
+            <p className="text-slate-400">Kelola pesan dan notifikasi sertifikat Anda.</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Sidebar */}
+          <div className="lg:col-span-3">
+            <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden sticky top-24 shadow-xl">
+              <div className="p-4 border-b border-slate-700/50 bg-slate-900/20">
+                <h2 className="font-semibold text-slate-200 text-sm uppercase tracking-wider">Menu</h2>
               </div>
+              <nav className="p-2 space-y-1">
+                {[
+                  { id: "inbox", label: "Kotak Masuk", icon: Inbox, count: mockEmails.length },
+                  { id: "starred", label: "Pentaingan", icon: Star, count: mockEmails.filter(e => e.starred).length },
+                  { id: "accepted", label: "Sertifikat", icon: CheckCircle, count: acceptedCertificates.length },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id as any)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-200 group ${
+                        isActive
+                          ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
+                          : "text-slate-400 hover:bg-slate-700/50 hover:text-white"
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'group-hover:text-white'}`} />
+                      <span className="font-medium text-sm">{item.label}</span>
+                      {item.count > 0 && (
+                        <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+                            isActive ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-300'
+                        }`}>
+                          {item.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sidebar */}
-            <div className="lg:col-span-1">
-              <div className="bg-slate-800/30 backdrop-blur-md rounded-xl border border-slate-600/30 overflow-hidden">
-                <div className="p-4 border-b border-slate-600/30">
-                  <h2 className="font-semibold text-slate-200">Kategori</h2>
-                </div>
-                <nav className="p-2">
-                  {[
-                    { id: "inbox", label: "Semua Verifikasi", icon: Inbox, count: mockEmails.length },
-                    { id: "starred", label: "Ditandai", icon: Star, count: mockEmails.filter(e => e.starred).length },
-                    { id: "accepted", label: "Sertifikat Diterima", icon: CheckCircleIcon, count: acceptedCertificates.length },
-                  ].map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => setActiveTab(item.id as any)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
-                          activeTab === item.id
-                            ? "bg-slate-700/50 text-white"
-                            : "text-slate-300 hover:bg-slate-700/30"
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                        <span>{item.label}</span>
-                        {item.count > 0 && (
-                          <span className="ml-auto bg-slate-600 text-slate-200 text-xs px-1.5 py-0.5 rounded-full">
-                            {item.count}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </nav>
-              </div>
-            </div>
-
-            {/* Konten */}
-            <div className="lg:col-span-3">
-              {/* Search Bar (hanya di inbox & starred) */}
-              {activeTab !== "accepted" && (
-                <div className="mb-4 relative">
-                  <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    placeholder="Cari sertifikat..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-800/40 border border-slate-700/50 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
-                  />
-                </div>
-              )}
-
-              {/* Konten Berdasarkan Tab */}
-              {activeTab === "accepted" ? (
-                // ✅ Tampilan Sertifikat yang Diterima
-                <div className="space-y-4">
-                  {acceptedCertificates.length === 0 ? (
-                    <div className="bg-slate-800/30 backdrop-blur-md rounded-xl border border-slate-600/30 p-12 text-center">
-                      <CheckCircleIcon className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-slate-200 mb-2">Belum ada sertifikat yang diterima</h3>
-                      <p className="text-slate-400">
-                        Sertifikat yang telah diverifikasi akan muncul di sini setelah Anda mengonfirmasi dari email.
-                      </p>
+          {/* Konten */}
+          <div className="lg:col-span-9">
+             <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 shadow-xl overflow-hidden min-h-[600px]">
+                {/* Search Header */}
+                <div className="p-4 border-b border-slate-700/50 flex items-center justify-between gap-4 bg-slate-900/20">
+                   {activeTab !== "accepted" ? (
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Cari pesan..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700/50 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 transition-all focus:bg-slate-900/80"
+                        />
                     </div>
-                  ) : (
-                    acceptedCertificates.map((cert) => (
-                      <div
-                        key={cert.id}
-                        onClick={() => navigate(`/email/accepted/${cert.id}`)}
-                        className="bg-slate-800/30 backdrop-blur-md rounded-xl border border-slate-600/30 overflow-hidden cursor-pointer hover:border-blue-500/50 transition-colors"
-                      >
-                        <div className="p-5">
-                          <div className="flex items-start gap-4">
-                            <div className="p-3 rounded-lg bg-blue-500/10">
-                              {cert.icon === "trophy" ? (
-                                <Trophy className="w-6 h-6 text-blue-400" />
-                              ) : cert.icon === "medal" ? (
-                                <Medal className="w-6 h-6 text-blue-400" />
-                              ) : (
-                                <Star className="w-6 h-6 text-blue-400" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs font-medium rounded">
-                                  <CheckCircleIcon className="w-3 h-3 inline mr-1" />
-                                  Diterima
-                                </span>
-                                <span className="px-2 py-0.5 bg-slate-700/50 text-slate-300 text-xs font-medium rounded flex items-center gap-1">
-                                  {cert.icon === "trophy" ? (
-                                    <Trophy className="w-3 h-3" />
-                                  ) : cert.icon === "medal" ? (
-                                    <Medal className="w-3 h-3" />
-                                  ) : (
-                                    <Star className="w-3 h-3" />
-                                  )}
-                                  {cert.badge}
-                                </span>
-                              </div>
-                              <h3 className="font-bold text-slate-100">{cert.title}</h3>
-                              <p className="text-slate-400 text-sm">{cert.issuer} • {cert.date}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
+                   ) : (
+                     <h3 className="font-semibold text-slate-200">Sertifikat Tersimpan</h3>
+                   )}
                 </div>
-              ) : (
-                // Daftar Email
-                <div className="bg-slate-800/30 backdrop-blur-md rounded-xl border border-slate-600/30 overflow-hidden">
-                  {filteredEmails.length === 0 ? (
-                    <div className="p-12 text-center">
-                      <Mail className="w-12 h-12 text-slate-500 mx-auto mb-4" />
-                      <p className="text-slate-400">Tidak ada sertifikat yang sesuai.</p>
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-slate-700/50">
-                      {filteredEmails.map((email) => (
-                        <div
-                          key={email.id}
-                          onClick={() => navigate(`/email/${email.id}`)}
-                          className={`p-4 hover:bg-slate-700/30 transition-colors cursor-pointer ${
-                            !email.read ? "bg-slate-800/50 border-l-4 border-blue-500" : ""
-                          }`}
+
+                <div className="p-2">
+                  <AnimatePresence mode="wait">
+                    {activeTab === "accepted" ? (
+                        <motion.div 
+                          key="accepted"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="space-y-3 p-2"
                         >
-                          <div className="flex items-start gap-3">
-                            <div className="mt-1">
-                              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        {acceptedCertificates.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-center">
+                                <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mb-4">
+                                    <CheckCircle className="w-8 h-8 text-slate-600" />
+                                </div>
+                                <h3 className="text-slate-300 font-medium mb-1">Belum ada sertifikat</h3>
+                                <p className="text-slate-500 text-sm max-w-xs">Sertifikat yang Anda terima akan muncul di sini.</p>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-slate-200">{email.senderName}</span>
-                                {email.starred && <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
-                                {email.attachments > 0 && <Paperclip className="w-3.5 h-3.5 text-slate-500" />}
-                              </div>
-                              <h3 className="font-semibold text-slate-100 truncate">{email.subject}</h3>
-                              <p className="text-slate-400 text-sm line-clamp-1 mt-1">{email.preview}</p>
+                        ) : (
+                            acceptedCertificates.map((cert) => (
+                            <div
+                                key={cert.id}
+                                onClick={() => navigate(`/email/accepted/${cert.id}`)}
+                                className="group relative bg-slate-800/30 hover:bg-slate-700/40 rounded-xl border border-slate-700/30 p-4 cursor-pointer transition-all hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/5"
+                            >
+                                <div className="flex items-start gap-4">
+                                    <div className={`p-3 rounded-xl ${
+                                        cert.icon === 'trophy' ? 'bg-amber-500/10 text-amber-500' : 
+                                        cert.icon === 'medal' ? 'bg-blue-500/10 text-blue-500' : 
+                                        'bg-purple-500/10 text-purple-500'
+                                    }`}>
+                                        {cert.icon === "trophy" ? <Trophy className="w-6 h-6" /> : 
+                                         cert.icon === "medal" ? <Medal className="w-6 h-6" /> : 
+                                         <Star className="w-6 h-6" />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="px-2 py-0.5 bg-green-500/10 text-green-400 text-[10px] font-bold uppercase tracking-wider rounded-md border border-green-500/20">
+                                                Terverifikasi
+                                            </span>
+                                            <span className="text-xs text-slate-500">• {cert.date}</span>
+                                        </div>
+                                        <h3 className="font-bold text-slate-100 group-hover:text-white transition-colors">{cert.title}</h3>
+                                        <p className="text-slate-400 text-sm mt-0.5">{cert.issuer}</p>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-blue-400 transition-colors" />
+                                </div>
                             </div>
-                            <div className="text-right">
-                              <span className={`text-xs ${
-                                email.read ? "text-slate-500" : "text-blue-400 font-medium"
-                              }`}>
-                                {email.time}
-                              </span>
+                            ))
+                        )}
+                        </motion.div>
+                    ) : (
+                        <motion.div 
+                          key="inbox"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="space-y-1"
+                        >
+                        {filteredEmails.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-center">
+                                <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mb-4">
+                                    <Inbox className="w-8 h-8 text-slate-600" />
+                                </div>
+                                <h3 className="text-slate-300 font-medium mb-1">Kotak masuk kosong</h3>
+                                <p className="text-slate-500 text-sm max-w-xs">Tidak ada pesan yang ditemukan.</p>
                             </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ) : (
+                            <div className="divide-y divide-slate-800/50">
+                            {filteredEmails.map((email) => (
+                                <div
+                                key={email.id}
+                                onClick={() => navigate(`/email/${email.id}`)}
+                                className={`group p-4 hover:bg-slate-700/30 transition-all cursor-pointer rounded-lg mx-2 my-1 ${
+                                    !email.read ? "bg-slate-800/60" : ""
+                                }`}
+                                >
+                                <div className="flex items-start gap-4">
+                                    <div className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${!email.read ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-transparent'}`} />
+                                    
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-4 mb-1">
+                                            <h4 className={`text-sm truncate ${!email.read ? 'font-bold text-white' : 'font-medium text-slate-300'}`}>
+                                                {email.senderName}
+                                            </h4>
+                                            <span className={`text-xs whitespace-nowrap ${!email.read ? 'text-blue-400 font-medium' : 'text-slate-500'}`}>
+                                                {email.time}
+                                            </span>
+                                        </div>
+                                        <h3 className={`text-base truncate mb-1 ${!email.read ? 'font-bold text-slate-100' : 'text-slate-300'}`}>
+                                            {email.subject}
+                                        </h3>
+                                        <p className="text-slate-400 text-sm line-clamp-1">
+                                            {email.preview}
+                                        </p>
+                                    </div>
+                                    
+                                    <div className="flex flex-col items-end gap-2 text-slate-500">
+                                        {email.starred && <Star className="w-4 h-4 text-amber-400 fill-amber-400" />}
+                                        {email.attachments > 0 && <Paperclip className="w-4 h-4" />}
+                                    </div>
+                                </div>
+                                </div>
+                            ))}
+                            </div>
+                        )}
+                        </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-              )}
-            </div>
+             </div>
           </div>
         </div>
       </main>
     </div>
-  );
-}
-
-// ✅ Import ikon yang dibutuhkan di file ini
-function Trophy({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function Medal({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  );
-}
-
-function Star({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-    </svg>
   );
 }

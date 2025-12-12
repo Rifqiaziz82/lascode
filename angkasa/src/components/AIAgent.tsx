@@ -86,7 +86,7 @@ export default function AIAgent() {
             {isOpen && (
                 <div className="mb-4 w-72 sm:w-80 lg:w-96 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300 origin-bottom-right animate-in fade-in slide-in-from-bottom-10">
                     {/* Header */}
-                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 flex items-center justify-between">
+                    <div className="bg-gradient-to-r from-slate-600 to-blue-600 p-4 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                                 <Bot className="w-5 h-5 text-white" />
@@ -174,7 +174,7 @@ export default function AIAgent() {
                 className={`group relative flex items-center justify-center w-12 h-12 lg:w-14 lg:h-14 rounded-full shadow-lg transition-all duration-300 hover:scale-110 ${
                     isOpen
                         ? 'bg-slate-700 text-slate-300 rotate-90'
-                        : 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white animate-bounce-slow'
+                        : 'bg-gradient-to-br from-slate-500 via-blue-500 to-blue-500 text-white animate-bounce-slow'
                 }`}
             >
                 {/* Glow Effect */}

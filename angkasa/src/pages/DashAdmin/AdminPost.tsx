@@ -345,7 +345,7 @@ const PostDetailBottomModal: React.FC<{
 };
 
 // ======================
-// COMPONENT: Comment Slide Panel (Aman dari undefined)
+// COMPONENT: Comment Slide Panel (Aman 100%)
 // ======================
 const CommentSlidePanel: React.FC<{
   post: Post;
@@ -356,21 +356,26 @@ const CommentSlidePanel: React.FC<{
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
 
-  // 🔥 Filter komentar yang tidak punya id
-  const commentsArray = Object.values(post.comments || {})
-    .filter(c => c.id && typeof c.id === 'string') // ✅ pastikan id valid
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  // ✅ Filter komentar yang punya id
+  const validComments = Object.values(post.comments || {})
+    .filter(c => c && typeof c === 'object' && c.id && typeof c.id === 'string');
+
+  const commentsArray = validComments.sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
 
   const handleSendReply = (parentId: string) => {
-    if (replyText.trim() && parentId) {
-      onReply(replyText.trim(), parentId);
-      setReplyText('');
-      setReplyingTo(null);
+    if (!parentId || !replyText.trim()) {
+      console.warn('Cannot send reply: missing parentId or text');
+      return;
     }
+    onReply(replyText.trim(), parentId);
+    setReplyText('');
+    setReplyingTo(null);
   };
 
   const handleDeleteClick = (commentId: string) => {
-    if (commentId && confirm("Apakah Anda yakin ingin menghapus komentar ini?")) {
+    if (commentId && confirm("Hapus komentar ini?")) {
       onDeleteComment(commentId);
     }
   };
@@ -406,20 +411,23 @@ const CommentSlidePanel: React.FC<{
                 </div>
                 <p className="text-gray-200 text-sm mb-2">{comment.text}</p>
 
-                <div className="flex gap-2 mt-1">
-                  <button
-                    onClick={() => setReplyingTo(comment.id)}
-                    className="text-xs text-blue-400 hover:text-blue-300"
-                  >
-                    Balas
-                  </button>
-                  <button
-                    onClick={() => handleDeleteClick(comment.id)}
-                    className="text-xs text-red-400 hover:text-red-300"
-                  >
-                    Hapus
-                  </button>
-                </div>
+                {/* ✅ Pastikan comment.id ada */}
+                {comment.id ? (
+                  <div className="flex gap-2 mt-1">
+                    <button
+                      onClick={() => setReplyingTo(comment.id)}
+                      className="text-xs text-blue-400 hover:text-blue-300"
+                    >
+                      Balas
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(comment.id)}
+                      className="text-xs text-red-400 hover:text-red-300"
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                ) : null}
 
                 {replyingTo === comment.id && (
                   <div className="mt-2 flex gap-2">
@@ -627,11 +635,11 @@ const AdminPost: React.FC = () => {
           const globalSnap = await get(ref(rtdb, `posts/${id}`));
           const globalData = globalSnap.exists() ? globalSnap.val() : {};
 
-          // Pastikan setiap komentar punya id
           const safeComments: Record<string, any> = {};
           if (globalData.comments) {
             for (const [key, comment] of Object.entries(globalData.comments)) {
               if (comment && typeof comment === 'object') {
+                // ✅ Selalu pastikan comment punya id
                 safeComments[key] = {
                   ...comment,
                   id: comment.id || key, // fallback ke key jika id hilang
@@ -664,12 +672,11 @@ const AdminPost: React.FC = () => {
     loadPosts();
   }, [loadPosts]);
 
-  // 🔥 Fungsi Balas — Aman dari undefined
+  // 🔥 Balas Komentar (Aman)
   const handleReplyToComment = async (postId: string, replyText: string, parentId: string) => {
     const currentUser = auth.currentUser;
-    // ✅ Validasi ketat
     if (!currentUser || !postId || !parentId || !replyText.trim()) {
-      console.warn('Invalid reply data:', { postId, parentId, replyText });
+      console.warn('❌ Invalid reply data:', { postId, parentId, replyText });
       return;
     }
 

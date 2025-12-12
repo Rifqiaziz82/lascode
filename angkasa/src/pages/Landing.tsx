@@ -85,7 +85,7 @@ export default function Landing() {
       </div>
 
       {/* Hero Section */}
-      <section className="relative z-10 min-h-screen flex flex-col justify-center items-center pt-20 px-4">
+      <section id="home" className="relative z-10 min-h-screen flex flex-col justify-center items-center pt-20 px-4">
         <motion.div 
           style={{ y, opacity }} 
           className="w-full max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center"
@@ -134,9 +134,6 @@ export default function Landing() {
                   <div>
                     <h3 className="text-2xl font-bold text-white">Trending Topik</h3>
                     <p className="text-slate-400">Peluang terpanas minggu ini</p>
-                  </div>
-                  <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400">
-                    <Zap className="w-6 h-6" />
                   </div>
                </div>
                <div className="space-y-4">
@@ -316,6 +313,61 @@ export default function Landing() {
             </div>
 
           </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" className="py-20 px-6 relative z-10">
+        <div className="max-w-4xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4">
+              Hubungi Kami
+            </h2>
+            <p className="text-slate-400 text-lg mb-12 max-w-2xl mx-auto">
+              Ada pertanyaan? Tim kami siap membantu Anda 24/7
+            </p>
+
+            <div className="grid md:grid-cols-2 gap-6 mt-10">
+              {/* Email Card */}
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8 text-left shadow-xl hover:shadow-blue-500/20 transition-all"
+              >
+                <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Email</h3>
+                <a href="mailto:angkasaid@gmail.com" className="text-blue-400 hover:text-blue-300 transition-colors">
+                  angkasaid@gmail.com
+                </a>
+                <p className="text-slate-500 text-sm mt-2">Respon dalam 24 jam</p>
+              </motion.div>
+
+              {/* Phone/WhatsApp Card */}
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8 text-left shadow-xl hover:shadow-green-500/20 transition-all"
+              >
+                <div className="w-12 h-12 bg-green-600/20 rounded-lg flex items-center justify-center mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Admin WhatsApp</h3>
+                <a href="https://wa.me/6287865440787" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 transition-colors">
+                  +62 878-6544-0787
+                </a>
+                <p className="text-slate-500 text-sm mt-2">Chat langsung dengan admin</p>
+              </motion.div>
+            </div>
+          </motion.div>
         </div>
       </section>
 

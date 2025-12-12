@@ -1,6 +1,6 @@
 // src/components/AuthProvider.tsx
 import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from 'react';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore'; // ✅ tambahkan ini
 import { auth, db } from '../firebase'; // ✅ pastikan `db` ada
 import { authService } from '../auth';
@@ -20,6 +20,9 @@ type User = {
   city_region?: string;
   availability?: string;
   tags?: string[];
+  institution?: string;
+  banner_photo?: string;
+  profile_photo?: string;
   social_media?: {
       instagram?: string;
       youtube?: string;
@@ -56,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const audio = new Audio('/soundtrack3.mp3');
+      const audio = new Audio('/soundtrack1.mp3');
       audio.loop = true;
       audio.volume = 0.3;
       audioRef.current = audio;
@@ -108,6 +111,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               favorite_genre: data.favorite_genre,
               software_used: data.software_used,
               city_region: data.city_region,
+              institution: data.institution,
+              banner_photo: data.banner_photo,
+              profile_photo: data.profile_photo,
               availability: data.availability,
               tags: data.tags,
               social_media: data.social_media

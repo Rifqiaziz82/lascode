@@ -79,7 +79,7 @@ export default function DashboardHeader() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Cari akun atau konten..."
+                  placeholder="Cari akun..."
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                   onFocus={() => setShowSearch(true)}

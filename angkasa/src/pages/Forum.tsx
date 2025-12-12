@@ -8,8 +8,8 @@ import CommunityView from '../components/forum/CommunityView';
 import GroupView from '../components/forum/GroupView';
 import ChatView from '../components/forum/ChatView';
 import EventView from '../components/forum/EventView';
-import { Play, Pause } from 'lucide-react';
-
+import { Play } from 'lucide-react';
+import Particles from '../components/Particles';
 
 export default function ForumPage() {
   const { user, isAudioPlaying, togglePlay } = useAuth();
@@ -23,7 +23,6 @@ export default function ForumPage() {
     setSearchQuery(query);
     setActiveView('feed');
     setTriggerSearchOpen(true);
-    // Reset trigger after a short delay
     setTimeout(() => setTriggerSearchOpen(false), 100);
   };
 
@@ -45,42 +44,69 @@ export default function ForumPage() {
   };
 
   return (
-    <div className="min-h-screen pt-30 max-md:pt-14 pb-10 max-md:pb-20">
+    <div className="relative min-h-screen bg-slate-950 text-slate-200 selection:bg-blue-500/30 overflow-x-hidden">
+      {/* Background Particles */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+         <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950" />
+         <Particles 
+            particleCount={100} 
+            particleSpread={15} 
+            speed={0.15} 
+            particleColors={['#3b82f6', '#8b5cf6']}
+            moveParticlesOnHover={true}
+            particleHoverFactor={2}
+            alphaParticles={true}
+            particleBaseSize={100}
+            sizeRandomness={1}
+            cameraDistance={25}
+            disableRotation={false}
+         />
+      </div>
+
       <DashboardHeader />
 
-      {/* 🔊 Tombol Kontrol Musik — Pojok Kiri Bawah */}
-      <div className="fixed bottom-25 lg:bottom-6 left-4 lg:left-6 z-20">
+      {/* Music Control - Floating */}
+      <div className="fixed bottom-6 left-6 z-50">
         <button
           onClick={togglePlay}
-          className="group flex items-center gap-1.5 lg:gap-2 px-3 lg:px-4 py-2 lg:py-2.5 bg-slate-800/70 hover:bg-slate-700/80 backdrop-blur-md border border-slate-600/40 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 text-slate-300 hover:text-white"
-          title={isAudioPlaying ? 'Jeda musik latar' : 'Putar musik latar'}
-          aria-label="Kontrol musik latar"
+          className="group flex items-center gap-3 pr-5 pl-3 py-3 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-full shadow-2xl hover:shadow-blue-500/20 transition-all duration-300"
+          title={isAudioPlaying ? 'Jeda musik' : 'Putar musik'}
         >
-          {isAudioPlaying ? (
-            <Pause className="w-4 h-4 lg:w-5 lg:h-5 transition-transform group-hover:scale-110" />
-          ) : (
-            <Play className="w-4 h-4 lg:w-5 lg:h-5 transition-transform group-hover:scale-110 ml-0.5" />
-          )}
-        
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-slate-600 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+             {isAudioPlaying ? (
+                <div className="flex gap-1 items-end h-4">
+                  <span className="w-1 bg-white h-2 animate-music-bar-1"></span>
+                  <span className="w-1 bg-white h-4 animate-music-bar-2"></span>
+                  <span className="w-1 bg-white h-3 animate-music-bar-3"></span>
+                </div>
+             ) : (
+                <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
+             )}
+          </div>
+          <div className="flex flex-col text-left">
+             <span className="text-[10px] text-slate-400">{isAudioPlaying ? 'Playing' : 'Paused'}</span>
+          </div>
         </button>
       </div>
 
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1600px]">
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+      <main className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1600px] pt-28 pb-12">
+        <div className="flex flex-col lg:flex-row gap-8">
           {/* Left Sidebar */}
           <ForumSidebar activeView={activeView} setActiveView={setActiveView} />
 
-          {/* Right Sidebar - appears second on mobile, third on desktop */}
-          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 order-3">
+          {/* Main Content */}
+          <div className="flex-1 min-w-0 order-2 lg:order-2">
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
+               {renderContent()}
+            </div>
+          </div>
+
+          {/* Right Sidebar */}
+          <div className="flex flex-col gap-6 order-3 lg:order-3">
             <ForumRightSidebar
               onSearch={handlePopularSearchClick}
               onSearchClick={() => setTriggerSearchOpen(true)}
             />
-          </div>
-
-          {/* Main Content - appears third on mobile, second on desktop */}
-          <div className="flex-1 min-w-0 order-2 ">
-            {renderContent()}
           </div>
         </div>
       </main>

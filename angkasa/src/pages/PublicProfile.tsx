@@ -31,6 +31,7 @@ import {
   MessageSquare,
   Play,
 } from "lucide-react";
+import Particles from '../components/Particles';
 
 interface Certificate {
   id: string;
@@ -56,6 +57,8 @@ interface User {
   availability?: string;
   badges?: string[];
   tags?: string[];
+  banner_photo?: string;
+  profile_photo?: string;
   social_media?: {
     instagram?: string;
     youtube?: string;
@@ -197,43 +200,83 @@ export default function PublicProfile() {
   const display = (value: string | null | undefined) => value || "–";
 
   return (
-    <div className="min-h-screen text-slate-200 pb-20">
-      <div className="container mx-auto px-4 sm:px-6 pt-8 max-w-6xl">
-        {/* Header Profil */}
-        <div className="mb-10">
-          <h1 className="text-2xl font-bold mb-2">Profile</h1>
-          <p className="text-slate-500 text-sm">View all your profile details here.</p>
-        </div>
+    <div className="relative min-h-screen bg-slate-950 text-slate-200 pb-20 overflow-x-hidden">
+      {/* Background Particles */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950" />
+        <Particles 
+          particleCount={60} 
+          particleSpread={10} 
+          speed={0.1} 
+          particleColors={['#60a5fa', '#a78bfa']}
+          moveParticlesOnHover={true}
+          particleHoverFactor={2}
+          alphaParticles={true}
+          particleBaseSize={100}
+          sizeRandomness={1}
+          cameraDistance={20}
+          disableRotation={false}
+        />
+      </div>
 
-        {/* Main Profile Card */}
+      <div className="relative z-10">
+      {/* Banner/Header */}
+      <div className="relative h-48 md:h-64 bg-gradient-to-r from-blue-900 via-purple-900 to-slate-900 overflow-hidden">
+        {user.banner_photo ? (
+          <img 
+            src={user.banner_photo} 
+            alt="Banner" 
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-overlay"></div>
+        )}
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 max-w-6xl -mt-24">
+        {/* Main Profile Card - Overlapping Banner */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Left Column: Avatar & Name */}
-          <div className="bg-slate-800/30 border border-slate-600/30 rounded-xl p-6 border shadow-lg">
+          <div className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 shadow-2xl">
             <div className="flex flex-col items-center">
-              <div className="w-40 h-40 rounded-full bg-slate-700 flex items-center justify-center border-4 border-slate-500 mb-4 shadow-inner">
-                <span className="text-6xl font-bold text-white">
-                  {name.charAt(0).toUpperCase()}
-                </span>
+              <div className="w-40 h-40 rounded-full bg-slate-800 p-1 border-4 border-slate-800 shadow-xl overflow-hidden mb-4">
+                {user.profile_photo ? (
+                  <img 
+                    src={user.profile_photo} 
+                    alt={name} 
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-6xl font-bold text-white">
+                    {name.charAt(0).toUpperCase()}
+                  </div>
+                )}
               </div>
-              <h2 className="text-3xl font-bold mt-2">{name}</h2>
-              <p className="text-green-400 text-sm mt-1">Premium User</p>
-                            {/* ✅ Tombol Add Friend */}
+              <h2 className="text-3xl font-bold text-white mt-2 text-center">{name}</h2>
+              <div className="flex items-center gap-2 text-slate-400 mt-2">
+                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded text-xs font-bold uppercase tracking-wider border border-blue-500/20">
+                  {display(role)}
+                </span>
+                <span className="text-sm">• {display(city_region)}</span>
+              </div>
+
+              {/* Add Friend Button */}
               {currentUser && currentUser.id !== user.id && (
                 <div className="mt-6 w-full">
                   {loadingFriend ? (
-                    <button className="w-full py-2 px-4 bg-slate-600 text-white rounded-lg cursor-not-allowed">
+                    <button disabled className="w-full py-2.5 px-4 bg-slate-700/50 text-white rounded-xl cursor-not-allowed text-sm font-medium">
                       Loading...
                     </button>
                   ) : isFriend ? (
-                    <button className="w-full py-2 px-4 bg-green-600 text-white rounded-lg cursor-default">
-                      Anda sudah berteman
+                    <button disabled className="w-full py-2.5 px-4 bg-green-600/20 text-green-400 border border-green-500/30 rounded-xl cursor-default text-sm font-medium">
+                      ✓ Sudah Berteman
                     </button>
                   ) : (
                     <button
                       onClick={addFriend}
-                      className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                      className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all shadow-lg shadow-blue-900/20 text-sm font-medium"
                     >
-                      Tambah Teman
+                      + Tambah Teman
                     </button>
                   )}
                 </div>
@@ -241,12 +284,14 @@ export default function PublicProfile() {
             </div>
           </div>
 
-
           {/* Right Column: Bio & Details */}
-          <div className="lg:col-span-2 bg-slate-800/30 border border-slate-600/30 rounded-xl p-6 border shadow-md">
+          <div className="lg:col-span-2 bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 shadow-xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Bio & other details</h3>
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <h3 className="text-lg font-semibold text-white">Bio & Detail Profil</h3>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-slate-400">Online</span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -325,17 +370,17 @@ export default function PublicProfile() {
         </div>
 
         {/* Social Media */}
-        <div className=" rounded-xl p-6 border bg-slate-800/30 border border-slate-600/30 mb-8 shadow-md">
-          <h3 className="text-lg font-semibold mb-4">Social Media</h3>
+        <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl p-6 border border-slate-700/50 mb-8 shadow-xl">
+          <h3 className="text-lg font-semibold mb-4 text-white">Social Media</h3>
           <div className="flex gap-4">
             {social_media.instagram && (
               <a
                 href={`https://instagram.com/${social_media.instagram.trim()}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 bg-slate-700 rounded-full hover:bg-slate-600 transition-all transform hover:scale-110"
+                className="p-3 bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-500/30 rounded-xl hover:bg-pink-500/30 transition-all transform hover:scale-110"
               >
-                <Instagram className="w-5 h-5" />
+                <Instagram className="w-5 h-5 text-pink-400" />
               </a>
             )}
             {social_media.youtube && (
@@ -343,9 +388,9 @@ export default function PublicProfile() {
                 href={`https://youtube.com/${social_media.youtube.trim()}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 bg-slate-700 rounded-full hover:bg-slate-600 transition-all transform hover:scale-110"
+                className="p-3 bg-gradient-to-br from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-xl hover:bg-red-500/30 transition-all transform hover:scale-110"
               >
-                <Youtube className="w-5 h-5" />
+                <Youtube className="w-5 h-5 text-red-400" />
               </a>
             )}
             {social_media.tiktok && (
@@ -353,20 +398,21 @@ export default function PublicProfile() {
                 href={`https://tiktok.com/@${social_media.tiktok.trim()}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-3 bg-slate-700 rounded-full hover:bg-slate-600 transition-all transform hover:scale-110"
+                className="p-3 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 rounded-xl hover:bg-cyan-500/30 transition-all transform hover:scale-110"
               >
-                <Twitch className="w-5 h-5" />
+                <Twitch className="w-5 h-5 text-cyan-400" />
               </a>
             )}
             {!social_media.instagram && !social_media.youtube && !social_media.tiktok && (
-              <span className="text-slate-500 text-sm">No social media linked</span>
+              <span className="text-slate-500 text-sm">Belum ada social media</span>
             )}
           </div>
         </div>
+
         {/* My Collection */}
-        <div className="rounded-xl p-6 border bg-slate-800/30 border border-slate-600/30 shadow-md">
-          <h3 className="text-lg font-semibold mb-4">My Collection</h3>
-          {collection.length > 0 ? (
+        <div className="bg-slate-800/40 backdrop-blur-xl rounded-3xl p-6 border border-slate-700/50 shadow-xl">
+          <h3 className="text-lg font-semibold mb-4 text-white">Koleksi Sertifikat</h3>
+          {koleksi.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {koleksi.map((item, idx) => (
                 <div
@@ -429,6 +475,7 @@ export default function PublicProfile() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
