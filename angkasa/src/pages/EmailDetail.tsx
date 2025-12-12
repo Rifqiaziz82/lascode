@@ -1,4 +1,4 @@
-
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../components/AuthProvider";
 import DashboardHeader from "../components/DashboardHeader";
@@ -18,68 +18,62 @@ import {
 } from "lucide-react";
 import Particles from "../components/Particles";
 import { motion } from "framer-motion";
-import { addDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { addDoc, collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
-interface EmailItem {
+interface EmailData {
   id: string;
+  recipientId: string;
   subject: string;
-  sender: string;
+  senderName: string;
+  preview?: string;
   content: string;
-  time: string;
-  isVerified: boolean;
-  attachment: string;
-  badge: string;
-  icon: "trophy" | "medal" | "star";
+  time: any;
+  type?: 'certificate' | 'message';
+  read: boolean;
+  starred: boolean;
+  certificate?: {
+    title: string;
+    issuer: string;
+    date: string;
+    badge: string;
+    icon: 'trophy' | 'medal' | 'star';
+    imageUrl: string;
+  };
+  attachments?: number;
 }
-
-interface AcceptedCert {
-  id: string;
-  title: string;
-  issuer: string;
-  date: string;
-  badge: string;
-  icon: "trophy" | "medal" | "star";
-  file: string;
-}
-
-const mockEmails: EmailItem[] = [
-  {
-    id: "1",
-    subject: "Verifikasi Sertifikat - Juara 1 Lomba Desain Grafis",
-    sender: "Panitia Lomba Desain 2024",
-    content: `Kepada Yth. Peserta Lomba Desain Grafis Nasional 2024,
-
-Selamat! Kami dengan bangga mengumumkan bahwa sertifikat Anda sebagai **Juara 1 Lomba Desain Grafis Nasional 2024** telah berhasil diverifikasi oleh tim kami.
-
-Silakan unduh sertifikat ini untuk keperluan portofolio atau administrasi lainnya.`,
-    time: "10:30",
-    isVerified: true,
-    attachment: "Sertifikat_Juara1_DesainGrafis_2024.pdf",
-    badge: "Juara 1",
-    icon: "trophy",
-  },
-];
-
-const mockAcceptedCerts: AcceptedCert[] = [
-  {
-    id: "cert-001",
-    title: "Sertifikat Juara 1 - Lomba Robotik ITB 2024",
-    issuer: "Institut Teknologi Bandung",
-    date: "15 Oktober 2024",
-    badge: "Juara 1",
-    icon: "trophy",
-    file: "Sertifikat_Juara1_Robotik_ITB_2024.pdf",
-  },
-];
 
 export default function EmailDetail() {
   const { user, isAudioPlaying, togglePlay } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams();
+  
+  const [email, setEmail] = useState<EmailData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const emailItem = mockEmails.find(e => e.id === id);
-  const acceptedItem = mockAcceptedCerts.find(c => c.id === id);
+  useEffect(() => {
+    if (!id) return;
+    const fetchEmail = async () => {
+      try {
+        const docRef = doc(db, 'emails', id);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+          const data = snap.data();
+          setEmail({ id: snap.id, ...data } as EmailData);
+          
+          // Mark as read if not already read
+          if (!data.read) {
+            await updateDoc(docRef, { read: true });
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching email:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEmail();
+  }, [id]);
 
   // Helper render icons
   const renderIcon = (iconType: string) => {
@@ -89,7 +83,15 @@ export default function EmailDetail() {
   };
 
   const renderContent = () => {
-     if (!emailItem && !acceptedItem) {
+     if (loading) {
+       return (
+         <div className="flex items-center justify-center py-20">
+           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+         </div>
+       );
+     }
+
+     if (!email) {
         return (
             <div className="flex flex-col items-center justify-center py-20">
                 <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-12 max-w-md text-center shadow-2xl">
@@ -109,9 +111,9 @@ export default function EmailDetail() {
         );
      }
 
-     if (acceptedItem) {
-        // ACCEPTED ITEM VIEW
-        const item = acceptedItem;
+     if (email.type === 'certificate' && email.certificate) {
+        // ACCEPTED ITEM VIEW (Certificate)
+        const item = email.certificate;
         return (
             <motion.div 
                initial={{ opacity: 0, y: 20 }}
@@ -159,18 +161,20 @@ export default function EmailDetail() {
                       </div>
                    </div>
 
-                   <div className="bg-slate-950/50 border border-slate-800 rounded-xl p-5 flex items-center gap-4 group hover:border-slate-700 transition-colors cursor-pointer">
-                       <div className="p-3 bg-red-500/10 rounded-lg">
-                          <FileText className="w-8 h-8 text-red-500" />
-                       </div>
-                       <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-slate-200 truncate group-hover:text-white transition-colors">{item.file}</h4>
-                          <p className="text-sm text-slate-500">Document PDF • 2.4 MB</p>
-                       </div>
-                       <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-sm font-medium transition-colors">
-                          Preview
-                       </button>
-                   </div>
+                   {item.imageUrl && (
+                    <div className="bg-slate-950/50 border border-slate-800 rounded-xl p-5 flex items-center gap-4 group hover:border-slate-700 transition-colors cursor-pointer">
+                        <div className="p-3 bg-red-500/10 rounded-lg">
+                           <FileText className="w-8 h-8 text-red-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                           <h4 className="font-semibold text-slate-200 truncate group-hover:text-white transition-colors">{item.imageUrl}</h4>
+                           <p className="text-sm text-slate-500">Document File</p>
+                        </div>
+                        <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-sm font-medium transition-colors">
+                           Preview
+                        </button>
+                    </div>
+                   )}
 
                    <div className="pt-4 flex flex-col sm:flex-row gap-4">
                        <button 
@@ -184,7 +188,7 @@ export default function EmailDetail() {
                               // Check if already added (prevent duplicates)
                               const existingQuery = query(
                                 collection(db, 'certificates'),
-                                where('user_id', '==', user.id),
+                                where('user_id', '==', (user as any).uid || user.id),
                                 where('title', '==', item.title)
                               );
                               const existingDocs = await getDocs(existingQuery);
@@ -196,15 +200,15 @@ export default function EmailDetail() {
                               
                               // Add to Firestore
                               await addDoc(collection(db, 'certificates'), {
-                                user_id: user.id,
+                                user_id: (user as any).uid || user.id,
                                 username: user.name || "User",
                                 title: item.title,
                                 competition_name: item.issuer,
                                 verified: true, // Always true from verified email
-                                image_url: item.file,
+                                image_url: item.imageUrl,
                                 public: true,
                                 created_at: new Date().toISOString(),
-                                email_id: id, // Link back to original email
+                                email_id: id,
                                 badge: item.badge,
                                 icon: item.icon
                               });
@@ -230,7 +234,6 @@ export default function EmailDetail() {
      }
 
      // EMAIL ITEM VIEW
-     const item = emailItem!;
      return (
         <motion.div 
            initial={{ opacity: 0, y: 20 }}
@@ -242,15 +245,16 @@ export default function EmailDetail() {
                <div className="flex items-start justify-between mb-8 pb-8 border-b border-slate-700/50">
                    <div className="flex-1 min-w-0 pr-4">
                       <div className="flex items-center gap-3 mb-4">
-                         <span className="px-3 py-1 bg-green-500/10 text-green-400 text-xs font-bold uppercase tracking-wider rounded-full border border-green-500/20 flex items-center gap-1.5">
-                             <CheckCircle className="w-3.5 h-3.5" /> {item.badge} Verified
+                         <span className="px-3 py-1 bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-wider rounded-full border border-blue-500/20 flex items-center gap-1.5">
+                             <CheckCircle className="w-3.5 h-3.5" /> Pesan Masuk
                          </span>
-                         <span className="text-slate-500 text-sm">• {item.time}</span>
+                         {/* Display time if available, handle Timestamp */}
+                         <span className="text-slate-500 text-sm">• {new Date().toLocaleDateString()}</span>
                       </div>
-                      <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 leading-tight">{item.subject}</h1>
+                      <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 leading-tight">{email.subject}</h1>
                       <div className="flex items-center gap-2 text-slate-400 text-sm">
                          <span>Dari:</span>
-                         <span className="text-slate-200 font-medium px-2 py-0.5 bg-slate-800 rounded">{item.sender}</span>
+                         <span className="text-slate-200 font-medium px-2 py-0.5 bg-slate-800 rounded">{email.senderName}</span>
                       </div>
                    </div>
                    <div className="flex gap-2">
@@ -268,44 +272,27 @@ export default function EmailDetail() {
 
                {/* Email Body */}
                <div className="prose prose-invert max-w-none text-slate-300 mb-8 whitespace-pre-wrap leading-relaxed">
-                   {item.content}
+                   {email.content}
                </div>
 
-               {/* Attachments */}
-               <div className="mb-8">
-                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Lampiran</h4>
-                   <div className="bg-slate-950/50 border border-slate-800 rounded-xl p-4 flex items-center gap-4 group hover:border-blue-500/30 transition-all cursor-pointer">
-                       <div className="p-3 bg-red-500/10 rounded-lg group-hover:bg-red-500/20 transition-colors">
-                          <FileText className="w-8 h-8 text-red-500" />
-                       </div>
-                       <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-slate-200 truncate group-hover:text-blue-400 transition-colors">{item.attachment}</h4>
-                          <p className="text-sm text-slate-500">PDF • 2.4 MB</p>
-                       </div>
-                       <button className="px-4 py-2 bg-slate-800 hover:bg-blue-600 hover:text-white text-slate-300 rounded-lg text-sm font-medium transition-all">
-                          Unduh
-                       </button>
-                   </div>
-               </div>
-
-               {/* Actions */}
-               <div className="pt-6 border-t border-slate-700/50 flex flex-col sm:flex-row gap-4">
-                   <button 
-                     onClick={() => alert("✅ Sertifikat diunduh!")}
-                     className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
-                   >
-                     <Upload className="w-4 h-4 rotate-180" /> Unduh Sertifikat
-                   </button>
-                   <button 
-                     onClick={() => {
-                        alert("✅ Ditambahkan ke portofolio!");
-                        navigate("/email");
-                     }}
-                     className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl shadow-lg shadow-green-900/20 font-medium transition-colors flex items-center justify-center gap-2"
-                   >
-                     <CheckCircle className="w-4 h-4" /> Tambah ke Portofolio
-                   </button>
-               </div>
+               {/* Attachments (Generic) */}
+               {email.attachments && email.attachments > 0 && (
+                <div className="mb-8">
+                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Lampiran</h4>
+                    <div className="bg-slate-950/50 border border-slate-800 rounded-xl p-4 flex items-center gap-4 group hover:border-blue-500/30 transition-all cursor-pointer">
+                        <div className="p-3 bg-red-500/10 rounded-lg group-hover:bg-red-500/20 transition-colors">
+                           <FileText className="w-8 h-8 text-red-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                           <h4 className="font-semibold text-slate-200 truncate group-hover:text-blue-400 transition-colors">Attachment</h4>
+                           <p className="text-sm text-slate-500">File</p>
+                        </div>
+                        <button className="px-4 py-2 bg-slate-800 hover:bg-blue-600 hover:text-white text-slate-300 rounded-lg text-sm font-medium transition-all">
+                           Unduh
+                        </button>
+                    </div>
+                </div>
+               )}
             </div>
         </motion.div>
      );

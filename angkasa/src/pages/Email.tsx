@@ -17,87 +17,89 @@ import {
 import Particles from "../components/Particles";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Email masuk
-const mockEmails = [
-  {
-    id: "1",
-    subject: "Verifikasi Sertifikat - Juara 1 Lomba Desain Grafis",
-    senderName: "Panitia Lomba Desain",
-    preview: "Selamat! Sertifikat Anda sebagai Juara 1 telah terverifikasi...",
-    time: "10:30",
-    read: false,
-    starred: true,
-    attachments: 1,
-  },
-  {
-    id: "2",
-    subject: "Sertifikat Peserta Hackathon Nasional 2024",
-    senderName: "Komite Hackathon",
-    preview: "Sertifikat partisipasi Anda telah diverifikasi dan siap diunduh...",
-    time: "Kemarin",
-    read: true,
-    starred: false,
-    attachments: 1,
-  },
-  {
-    id: "3",
-    subject: "Verifikasi Sertifikat Juara 2 - Lomba KTI 2024",
-    senderName: "Panitia KTI",
-    preview: "Selamat! Sertifikat Juara 2 Anda telah terverifikasi...",
-    time: "2 hari lalu",
-    read: true,
-    starred: false,
-    attachments: 1,
-  },
-  {
-    id: "4",
-    subject: "Sertifikat Finalis - Kompetisi Programming 2024",
-    senderName: "Kompetisi Programming",
-    preview: "Sertifikat Anda sebagai Finalis telah berhasil diverifikasi...",
-    time: "3 hari lalu",
-    read: false,
-    starred: false,
-    attachments: 1,
-  },
-];
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { db } from '../firebase';
 
-// ✅ Sertifikat yang sudah diterima (diverifikasi)
-const mockAcceptedCerts = [
-  {
-    id: "cert-001",
-    title: "Sertifikat Juara 1 - Lomba Robotik ITB 2024",
-    issuer: "Institut Teknologi Bandung",
-    date: "15 Oktober 2024",
-    badge: "Juara 1",
-    icon: "trophy", 
-    file: "Sertifikat_Juara1_Robotik_ITB_2024.pdf",
-    type: "accepted" as const,
-  },
-  {
-    id: "cert-002",
-    title: "Sertifikat Peserta - Webinar AI Nasional",
-    issuer: "Kemenkominfo",
-    date: "5 November 2024",
-    badge: "Peserta",
-    icon: "medal",
-    file: "Sertifikat_Peserta_AI_Webinar.pdf",
-    type: "accepted",
-  },
-];
+// Interface untuk Email dari Firestore
+interface EmailMessage {
+  id: string;
+  recipientId: string;
+  subject: string;
+  senderName: string;
+  preview: string;
+  content: string;
+  time: any; // Firestore Timestamp
+  read: boolean;
+  starred: boolean;
+  type?: 'message' | 'certificate';
+  attachments?: number;
+  certificate?: any;
+}
 
 export default function Email() {
   const { user, isAudioPlaying, togglePlay } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"inbox" | "starred" | "accepted">("inbox");
   const [searchQuery, setSearchQuery] = useState("");
-  const [acceptedCertificates] = useState(mockAcceptedCerts);
+  const [emails, setEmails] = useState<EmailMessage[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    if (!user) return;
 
-  const filteredEmails = mockEmails.filter(email => {
-    const matchesTab = 
-      (activeTab === "inbox") ||
-      (activeTab === "starred" && email.starred);
+    // Use type assertion to handle User interface variations
+    const userId = (user as any).uid || (user as any).id;
+
+    const q = query(
+      collection(db, 'emails'), 
+      where('recipientId', '==', userId),
+      orderBy('time', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const emailList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as EmailMessage[];
+      
+      setEmails(emailList);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching emails:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Format Time Helper
+  const formatTime = (timestamp: any) => {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
     
+    // Jika hari ini
+    if (diff < 24 * 60 * 60 * 1000 && date.getDate() === now.getDate()) {
+      return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    }
+    // Jika kemarin
+    if (diff < 48 * 60 * 60 * 1000 && date.getDate() === now.getDate() - 1) {
+      return 'Kemarin';
+    }
+    // Sisanya tanggal
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+  };
+
+  // Filter Logic
+  const filteredEmails = emails.filter(email => {
+    // Basic Tab Filter
+    let matchesTab = false;
+    if (activeTab === "inbox") matchesTab = true; // Show all in inbox? Or exclude certs? Let's show all.
+    if (activeTab === "starred") matchesTab = email.starred;
+    if (activeTab === "accepted") matchesTab = email.type === 'certificate';
+
+    // Search Filter
     const matchesSearch = 
       email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       email.senderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -105,6 +107,17 @@ export default function Email() {
 
     return matchesTab && matchesSearch;
   });
+
+  // Derived Accepted Certificates (for stats count)
+  const acceptedCertificates = emails.filter(e => e.type === 'certificate').map(e => ({
+    id: e.id,
+    title: e.certificate?.title || e.subject,
+    issuer: e.certificate?.issuer || e.senderName,
+    date: e.certificate?.date || formatTime(e.time),
+    badge: e.certificate?.badge || 'Certificate',
+    icon: e.certificate?.icon || 'medal',
+    file: e.certificate?.imageUrl,
+  }));
 
   // Reset pencarian saat ganti tab
   useEffect(() => {
@@ -142,7 +155,7 @@ export default function Email() {
           className="group flex items-center gap-3 pr-5 pl-3 py-3 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-full shadow-2xl hover:shadow-blue-500/20 transition-all duration-300"
           title={isAudioPlaying ? 'Jeda musik' : 'Putar musik'}
         >
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-slate-600 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
              {isAudioPlaying ? (
                 <div className="flex gap-1 items-end h-4">
                   <span className="w-1 bg-white h-2 animate-music-bar-1"></span>
@@ -154,13 +167,14 @@ export default function Email() {
              )}
           </div>
           <div className="flex flex-col text-left">
+             <span className="text-xs font-bold text-slate-200 group-hover:text-white transition-colors">Ambient Lo-Fi</span>
              <span className="text-[10px] text-slate-400">{isAudioPlaying ? 'Playing' : 'Paused'}</span>
           </div>
         </button>
       </div>
 
       <main className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl pt-28 pb-12">
-        <div className="mb-8 text-center">
+        <div className="mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">Kotak Masuk</h1>
             <p className="text-slate-400">Kelola pesan dan notifikasi sertifikat Anda.</p>
         </div>
@@ -170,12 +184,12 @@ export default function Email() {
           <div className="lg:col-span-3">
             <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 overflow-hidden sticky top-24 shadow-xl">
               <div className="p-4 border-b border-slate-700/50 bg-slate-900/20">
-                <h2 className="font-semibold text-slate-200 text-sm uppercase tracking-wider">Menu</h2>
+                <h2 className="font-semibold text-slate-200 text-sm uppercase tracking-wider">Navigasi</h2>
               </div>
               <nav className="p-2 space-y-1">
                 {[
-                  { id: "inbox", label: "Kotak Masuk", icon: Inbox, count: mockEmails.length },
-                  { id: "starred", label: "Pentaingan", icon: Star, count: mockEmails.filter(e => e.starred).length },
+                  { id: "inbox", label: "Kotak Masuk", icon: Inbox, count: emails.length },
+                  { id: "starred", label: "Pentaingan", icon: Star, count: emails.filter(e => e.starred).length },
                   { id: "accepted", label: "Sertifikat", icon: CheckCircle, count: acceptedCertificates.length },
                 ].map((item) => {
                   const Icon = item.icon;
@@ -225,9 +239,20 @@ export default function Email() {
                    ) : (
                      <h3 className="font-semibold text-slate-200">Sertifikat Tersimpan</h3>
                    )}
+                   
+                   <div className="flex gap-2">
+                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                      <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse delay-75"></div>
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse delay-150"></div>
+                   </div>
                 </div>
 
                 <div className="p-2">
+                  {loading ? (
+                    <div className="flex items-center justify-center h-64">
+                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                    </div>
+                  ) : (
                   <AnimatePresence mode="wait">
                     {activeTab === "accepted" ? (
                         <motion.div 
@@ -313,7 +338,7 @@ export default function Email() {
                                                 {email.senderName}
                                             </h4>
                                             <span className={`text-xs whitespace-nowrap ${!email.read ? 'text-blue-400 font-medium' : 'text-slate-500'}`}>
-                                                {email.time}
+                                                {formatTime(email.time)}
                                             </span>
                                         </div>
                                         <h3 className={`text-base truncate mb-1 ${!email.read ? 'font-bold text-slate-100' : 'text-slate-300'}`}>
@@ -326,7 +351,7 @@ export default function Email() {
                                     
                                     <div className="flex flex-col items-end gap-2 text-slate-500">
                                         {email.starred && <Star className="w-4 h-4 text-amber-400 fill-amber-400" />}
-                                        {email.attachments > 0 && <Paperclip className="w-4 h-4" />}
+                                        {email.attachments && email.attachments > 0 ? <Paperclip className="w-4 h-4" /> : null}
                                     </div>
                                 </div>
                                 </div>
@@ -336,6 +361,7 @@ export default function Email() {
                         </motion.div>
                     )}
                   </AnimatePresence>
+                  )}
                 </div>
              </div>
           </div>

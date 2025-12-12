@@ -305,7 +305,7 @@ export default function Landing() {
                       <div className="h-2 w-12 bg-slate-700 rounded" />
                    </div>
                    <div className="h-64 rounded-2xl bg-gradient-to-t from-blue-500/20 to-slate-900 border border-white/10 p-6 flex flex-col justify-end">
-                      <span className="text-4xl font-bold text-white mb-2">$50K+</span>
+                      <span className="text-4xl font-bold text-white mb-2">Rp 50 Juta</span>
                       <span className="text-slate-400 text-sm">Total Hadiah Beasiswa</span>
                    </div>
                  </motion.div>
