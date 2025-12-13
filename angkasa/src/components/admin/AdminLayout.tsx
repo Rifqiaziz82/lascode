@@ -25,7 +25,7 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children, role }: AdminLayoutProps) {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024);
     const location = useLocation();
     const navigate = useNavigate();
     const { logout } = useAuth();
@@ -56,10 +56,10 @@ export default function AdminLayout({ children, role }: AdminLayoutProps) {
     return (
         <div className="min-h-screen bg-slate-900 flex">
             {/* Mobile Sidebar Overlay */}
-            {!isSidebarOpen && (
+            {isSidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-                    onClick={() => setIsSidebarOpen(true)}
+                    onClick={() => setIsSidebarOpen(false)}
                 />
             )}
 

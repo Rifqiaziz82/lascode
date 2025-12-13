@@ -266,7 +266,7 @@ export default function EventView() {
         <div className="space-y-6 mb-4">
             {/* Header & Search */}
             <div className="bg-slate-800/30 border border-slate-600/30 rounded-xl p-6">
-                <h2 className="text-2xl font-bold text-slate-200 mb-6">Acara & Seminar</h2>
+                <h2 className="text-2xl font-bold text-slate-200 mb-6 text-center">Acara & Seminar</h2>
 
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="flex-1 relative">

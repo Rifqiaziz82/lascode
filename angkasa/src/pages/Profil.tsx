@@ -389,25 +389,22 @@ export default function Profile() {
       <DashboardHeader />
 
       {/* Music Control - Floating */}
-      <div className="fixed bottom-6 left-6 z-50">
+      <div className="fixed bottom-10 sm:bottom-6 left-6 z-50">
         <button
           onClick={togglePlay}
-          className="group flex items-center gap-3 pr-5 pl-3 py-3 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-full shadow-2xl hover:shadow-blue-500/20 transition-all duration-300"
+          className="group flex items-center gap-0 sm:gap-3 p-0 sm:pr-5 sm:pl-3 sm:py-3 transition-all duration-300"
           title={isAudioPlaying ? 'Jeda musik' : 'Putar musik'}
         >
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-slate-600 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-             {isAudioPlaying ? (
-                <div className="flex gap-1 items-end h-4">
-                  <span className="w-1 bg-white h-2 animate-music-bar-1"></span>
-                  <span className="w-1 bg-white h-4 animate-music-bar-2"></span>
-                  <span className="w-1 bg-white h-3 animate-music-bar-3"></span>
-                </div>
-             ) : (
-                <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
-             )}
-          </div>
-          <div className="flex flex-col text-left">
-             <span className="text-[10px] text-slate-400">{isAudioPlaying ? 'Playing' : 'Paused'}</span>
+            {isAudioPlaying ? (
+              <div className="flex gap-1 items-end h-4">
+                <span className="w-1 bg-white h-2 animate-music-bar-1"></span>
+                <span className="w-1 bg-white h-4 animate-music-bar-2"></span>
+                <span className="w-1 bg-white h-3 animate-music-bar-3"></span>
+              </div>
+            ) : (
+              <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
+            )}
           </div>
         </button>
       </div>

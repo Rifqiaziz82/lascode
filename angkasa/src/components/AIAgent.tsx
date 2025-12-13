@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bot, Send, X } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
 
 interface Message {
     id: string;
@@ -23,21 +22,38 @@ export default function AIAgent() {
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    const renderMessageWithBold = (text: string) => {
+    // Pecah berdasarkan **...**
+    const parts = text.split(/\*\*(.*?)\*\*/g);
+
+    return parts.map((part, index) => {
+        // Elemen di posisi ganjil adalah yang di dalam **
+        if (index % 2 === 1) {
+            return <strong key={index} className="font-bold">{part}</strong>;
+        }
+        return part;
+    });
+};
+
+    // 👇 Buat sessionId unik per sesi (bisa diganti pakai localStorage/userId)
+    const [sessionId] = useState(() => {
+        return localStorage.getItem('sessionId') || crypto.randomUUID();
+    });
+
+    useEffect(() => {
+        // Simpan sessionId ke localStorage biar tetap sama saat refresh
+        localStorage.setItem('sessionId', sessionId);
+    }, [sessionId]);
+
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
-
-    const location = useLocation();
-
-    // ❌ Jangan tampilkan di halaman Admin
-    const isAdminPage = location.pathname.startsWith('/DashAdmin') || location.pathname.startsWith('/admin');
-    if (isAdminPage) return null;
 
     useEffect(() => {
         scrollToBottom();
     }, [messages, isOpen]);
 
-    const handleSendMessage = (e: React.FormEvent) => {
+    const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!inputText.trim()) return;
 
@@ -52,39 +68,51 @@ export default function AIAgent() {
         setInputText('');
         setIsTyping(true);
 
-        // Simulate AI response after 800ms
-        setTimeout(() => {
-            try {
-                const aiResponses = [
-                    "Menarik! Ceritakan lebih lanjut.",
-                    "Saya bisa membantu Anda menavigasi ke halaman Profil atau Forum.",
-                    "Angkasa adalah platform untuk pengembangan diri dan karir.",
-                    "Coba cek bagian Pencapaian di profil Anda!",
-                    "Apakah Anda sudah memverifikasi email Anda?",
-                ];
-                const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+        try {
+            // 👇 Kirim ke webhook n8n
+            const response = await fetch('https://n8n.dayoon.my.id/webhook/chatbot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sessionId: sessionId, // <-- Sesuai gambar Postman
+                    chatInput: inputText, // <-- Sesuai gambar Postman
+                }),
+            });
 
-                const aiMessage: Message = {
-                    id: (Date.now() + 1).toString(),
-                    text: randomResponse,
-                    sender: 'ai',
-                    timestamp: new Date(),
-                };
-
-                setMessages((prev) => [...prev, aiMessage]);
-            } catch (error) {
-                console.error("Failed to get AI response:", error);
-                const errorMessage: Message = {
-                    id: (Date.now() + 2).toString(),
-                    text: "Maaf, terjadi kesalahan saat menghubungi server AI.",
-                    sender: 'ai',
-                    timestamp: new Date(),
-                };
-                setMessages((prev) => [...prev, errorMessage]);
-            } finally {
-                setIsTyping(false);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-        }, 800);
+
+            const data = await response.json();
+
+            // Validasi struktur respons
+            if (!data.reply || typeof data.reply !== 'string') {
+                throw new Error('Respons tidak valid dari server');
+            }
+
+            const aiMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                text: data.reply, // <-- Ambil dari field "reply"
+                sender: 'ai',
+                timestamp: new Date(),
+            };
+
+            setMessages((prev) => [...prev, aiMessage]);
+
+        } catch (error) {
+            console.error("Gagal kirim ke AI:", error);
+            const errorMessage: Message = {
+                id: (Date.now() + 2).toString(),
+                text: "Maaf, terjadi kesalahan saat menghubungi server AI. Silakan coba lagi nanti.",
+                sender: 'ai',
+                timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, errorMessage]);
+        } finally {
+            setIsTyping(false);
+        }
     };
 
     return (
@@ -122,12 +150,13 @@ export default function AIAgent() {
                                 className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
                                 <div
-                                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${msg.sender === 'user'
-                                        ? 'bg-indigo-600 text-white rounded-br-none'
-                                        : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-bl-none'
-                                        }`}
+                                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+                                        msg.sender === 'user'
+                                            ? 'bg-indigo-600 text-white rounded-br-none'
+                                            : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-bl-none'
+                                    }`}
                                 >
-                                    {msg.text}
+                                    {renderMessageWithBold(msg.text)}
                                 </div>
                             </div>
                         ))}
@@ -177,10 +206,11 @@ export default function AIAgent() {
             {/* Floating Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`group relative flex items-center justify-center w-12 h-12 lg:w-14 lg:h-14 rounded-full shadow-lg transition-all duration-300 hover:scale-110 ${isOpen
-                    ? 'bg-slate-700 text-slate-300 rotate-90'
-                    : 'bg-gradient-to-br from-slate-500 via-blue-500 to-blue-500 text-white animate-bounce-slow'
-                    }`}
+                className={`group relative max-lg:mb-20 flex items-center justify-center w-12 h-12 lg:w-14 lg:h-14 rounded-full shadow-lg transition-all duration-300 hover:scale-110 ${
+                    isOpen
+                        ? 'bg-slate-700 text-slate-300 rotate-90'
+                        : 'bg-gradient-to-br from-slate-500 via-blue-500 to-blue-500 text-white animate-bounce-slow'
+                }`}
             >
                 {/* Glow Effect */}
                 {!isOpen && (

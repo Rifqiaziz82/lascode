@@ -158,29 +158,25 @@ export default function Email() {
       <div className="fixed bottom-6 left-6 z-50">
         <button
           onClick={togglePlay}
-          className="group flex items-center gap-3 pr-5 pl-3 py-3 bg-slate-900/40 hover:bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-full shadow-2xl hover:shadow-blue-500/20 transition-all duration-300"
+          className="group flex items-center gap-3 pr-3 pl-3 py-3 transition-all duration-300"
           title={isAudioPlaying ? 'Jeda musik' : 'Putar musik'}
         >
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-            {isAudioPlaying ? (
-              <div className="flex gap-1 items-end h-4">
-                <span className="w-1 bg-white h-2 animate-music-bar-1"></span>
-                <span className="w-1 bg-white h-4 animate-music-bar-2"></span>
-                <span className="w-1 bg-white h-3 animate-music-bar-3"></span>
-              </div>
-            ) : (
-              <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
-            )}
-          </div>
-          <div className="flex flex-col text-left">
-            <span className="text-xs font-bold text-slate-200 group-hover:text-white transition-colors">Ambient Lo-Fi</span>
-            <span className="text-[10px] text-slate-400">{isAudioPlaying ? 'Playing' : 'Paused'}</span>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-slate-600 flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+             {isAudioPlaying ? (
+                <div className="flex gap-1 items-end h-4">
+                  <span className="w-1 bg-white h-2 animate-music-bar-1"></span>
+                  <span className="w-1 bg-white h-4 animate-music-bar-2"></span>
+                  <span className="w-1 bg-white h-3 animate-music-bar-3"></span>
+                </div>
+             ) : (
+                <Play className="w-4 h-4 text-white ml-0.5" fill="currentColor" />
+             )}
           </div>
         </button>
       </div>
 
       <main className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl pt-24 md:pt-28 pb-12">
-        <div className="mb-6 md:mb-8">
+        <div className="mb-6 md:mb-8 text-center">
           <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Kotak Masuk</h1>
           <p className="text-slate-400 text-sm md:text-base">Kelola pesan dan notifikasi sertifikat Anda.</p>
         </div>
@@ -243,12 +239,6 @@ export default function Email() {
                 ) : (
                   <h3 className="font-semibold text-slate-200 text-sm md:text-base">Sertifikat Tersimpan</h3>
                 )}
-
-                <div className="flex gap-1.5 md:gap-2">
-                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                  <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse delay-75"></div>
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse delay-150"></div>
-                </div>
               </div>
 
               <div className="p-1 md:p-2">
