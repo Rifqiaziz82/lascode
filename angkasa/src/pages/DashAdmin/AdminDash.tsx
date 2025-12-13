@@ -1,298 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { List, Bell, Menu, X, LogOut, Award, Search, Send } from 'lucide-react';
+import { List, Bell, Menu, X, LogOut, Award, LayoutDashboard } from 'lucide-react';
 import { onAuthStateChanged, signOut, updateProfile } from 'firebase/auth';
 import { ref, get } from 'firebase/database';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, rtdb, db } from '../../firebase';
-import { searchUsers } from '../../lib/userService';
-import AdminPanel from './AdminPanel.tsx';
-import AdminPost from './AdminPost.tsx';
-import AdminNotif from './AdminNotif.tsx';
-import AdminLogin from './AdminLogin.tsx';
 
-const AdminCertificate = () => {
-  const [recipient, setRecipient] = useState<{ id: string; name: string; email: string } | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<{ id: string; name: string; email: string }[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-
-  const [formData, setFormData] = useState({
-    title: '',
-    issuer: '',
-    date: new Date().toISOString().split('T')[0],
-    badge: 'Peserta',
-    icon: 'medal' as 'trophy' | 'medal' | 'star',
-    description: '',
-    imageUrl: '',
-  });
-
-  const [loading, setLoading] = useState(false);
-
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-
-    setIsSearching(true);
-    try {
-      const results = await searchUsers(searchQuery);
-      setSearchResults(results);
-    } catch (error) {
-      console.error("Error searching users:", error);
-      alert("Gagal mencari user");
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!recipient) {
-      alert("Pilih penerima sertifikat terlebih dahulu");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await addDoc(collection(db, 'emails'), {
-        recipientId: recipient.id,
-        recipientName: recipient.name,
-        subject: `Sertifikat: ${formData.title}`,
-        senderName: formData.issuer || 'Angkasa Team',
-        preview: `Selamat! Anda telah menerima sertifikat ${formData.badge} untuk ${formData.title}`,
-        content: formData.description || `Berikut adalah sertifikat elektronik untuk ${formData.title} yang diselenggarakan oleh ${formData.issuer}.`,
-        time: serverTimestamp(),
-        dateString: new Date().toLocaleDateString('id-ID'),
-        read: false,
-        starred: false,
-        type: 'certificate',
-        certificate: {
-          title: formData.title,
-          issuer: formData.issuer,
-          date: formData.date,
-          badge: formData.badge,
-          icon: formData.icon,
-          imageUrl: formData.imageUrl || null,
-        },
-        attachments: 1
-      });
-
-      alert(`✅ Sertifikat berhasil dikirim ke ${recipient.name}!`);
-      
-      setFormData({
-        title: '',
-        issuer: '',
-        date: new Date().toISOString().split('T')[0],
-        badge: 'Peserta',
-        icon: 'medal',
-        description: '',
-        imageUrl: '',
-      });
-      setRecipient(null);
-      setSearchQuery('');
-      setSearchResults([]);
-    } catch (error) {
-      console.error("Error sending certificate:", error);
-      alert("❌ Gagal mengirim sertifikat");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="bg-slate-800 border border-slate-700 p-6 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-          <Award className="text-blue-400" />
-          Kirim Sertifikat Baru
-        </h2>
-
-        {/* 1. Recipient Selection */}
-        <div className="mb-8 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
-          <label className="block text-slate-400 text-sm mb-2">Pilih Penerima</label>
-          
-          {!recipient ? (
-            <div className="space-y-4">
-              <form onSubmit={handleSearch} className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cari user by nama..."
-                    className="w-full bg-slate-800 border border-slate-600 rounded-lg py-2 pl-10 pr-4 text-white focus:outline-none focus:border-blue-500 transition-colors"
-                  />
-                </div>
-                <button 
-                  type="submit"
-                  disabled={isSearching}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-                >
-                  {isSearching ? 'Mencari...' : 'Cari'}
-                </button>
-              </form>
-
-              {searchResults.length > 0 && (
-                <div className="bg-slate-800 rounded-lg border border-slate-600 overflow-hidden max-h-48 overflow-y-auto">
-                  {searchResults.map((user: { id: string; name: string; email: string }) => (
-                    <button
-                      key={user.id}
-                      onClick={() => setRecipient(user)}
-                      className="w-full p-3 flex items-center gap-3 hover:bg-slate-700/50 border-b border-slate-700/50 last:border-0 text-left transition-colors"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-xs font-bold text-white">
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="text-white font-medium text-sm">{user.name}</div>
-                        <div className="text-slate-400 text-xs">{user.email}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center justify-between bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
-                  {recipient.name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <div className="text-blue-200 font-medium">Kepada: {recipient.name}</div>
-                  <div className="text-blue-300/60 text-sm">{recipient.email}</div>
-                </div>
-              </div>
-              <button 
-                onClick={() => setRecipient(null)}
-                className="p-2 hover:bg-blue-500/20 rounded-lg text-blue-300 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* 2. Certificate Details Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Judul Sertifikat</label>
-              <input
-                type="text"
-                required
-                value={formData.title}
-                onChange={e => setFormData({...formData, title: e.target.value})}
-                placeholder="Ex: Juara 1 Web Design..."
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Penyelenggara / Issuer</label>
-              <input
-                type="text"
-                required
-                value={formData.issuer}
-                onChange={e => setFormData({...formData, issuer: e.target.value})}
-                placeholder="Ex: Universitas Indonesia"
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Tanggal</label>
-              <input
-                type="date"
-                required
-                value={formData.date}
-                onChange={e => setFormData({...formData, date: e.target.value})}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Badge / Predikat</label>
-              <select
-                value={formData.badge}
-                onChange={e => setFormData({...formData, badge: e.target.value})}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-              >
-                <option value="Peserta">Peserta</option>
-                <option value="Finalis">Finalis</option>
-                <option value="Juara 1">Juara 1</option>
-                <option value="Juara 2">Juara 2</option>
-                <option value="Juara 3">Juara 3</option>
-                <option value="Juara Harapan">Juara Harapan</option>
-                <option value="Best Speaker">Best Speaker</option>
-                <option value="Best Design">Best Design</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Icon Tipe</label>
-              <div className="flex bg-slate-700/50 rounded-lg p-1 border border-slate-600">
-                {(['medal', 'trophy', 'star'] as const).map((icon) => (
-                  <button
-                    key={icon}
-                    type="button"
-                    onClick={() => setFormData({...formData, icon})}
-                    className={`flex-1 py-1.5 rounded-md flex justify-center transition-colors ${
-                      formData.icon === icon ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {icon === 'medal' && 'Medal'}
-                    {icon === 'trophy' && 'Trophy'}
-                    {icon === 'star' && 'Star'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Image URL (Optional)</label>
-              <input
-                type="text"
-                value={formData.imageUrl}
-                onChange={e => setFormData({...formData, imageUrl: e.target.value})}
-                placeholder="https://..."
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-slate-300 text-sm font-medium">Deskripsi / Pesan Email</label>
-            <textarea
-              rows={4}
-              value={formData.description}
-              onChange={e => setFormData({...formData, description: e.target.value})}
-              placeholder="Pesan tambahan untuk penerima..."
-              className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div className="flex justify-end pt-4 border-t border-slate-700">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
-            >
-              {loading ? (
-                <>Loading...</>
-              ) : (
-                <>
-                  <Send className="w-5 h-5" />
-                  Kirim Sertifikat
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
+import { auth, rtdb } from '../../firebase';
+import AdminPanel from './AdminPanel';
+import AdminPost from './AdminPost';
+import AdminNotif from './AdminNotif';
+import AdminLogin from './AdminLogin';
+import AdminCertificate from './AdminCertificate';
 
 type AppRoute = 'dashboard' | 'posts' | 'notifications' | 'certificates';
 
@@ -302,17 +18,66 @@ const getColorFromUid = (uid: string) => {
     hash = uid.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 70%, 35%)`;
+  return `hsl(${hue}, 70%, 50%)`; // Brighter for dark mode
 };
 
 const getInitials = (name: string | null | undefined, email?: string | null) => {
   const source = name || email?.split('@')[0] || 'Admin';
-  return source
-    .split(/\s+/)
-    .map(part => part[0])
-    .join('')
-    .substring(0, 2)
-    .toUpperCase();
+  return source.split(/\s+/).map(part => part[0]).join('').substring(0, 2).toUpperCase();
+};
+
+const ProfileDetailModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  user: { displayName?: string | null; email?: string | null; uid: string };
+  initials: string;
+  profileColor: string;
+}> = ({ isOpen, onClose, user, initials, profileColor }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/80 transition-opacity duration-200"
+        onClick={onClose}
+      />
+      {/* Modal Content */}
+      <div
+        className="relative bg-slate-900 border border-slate-700/50 rounded-2xl p-6 w-full max-w-sm shadow-2xl transform transition-all duration-200 scale-100 opacity-100 animate-in fade-in zoom-in-95"
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+          <X size={20} />
+        </button>
+
+        <div className="flex flex-col items-center text-center">
+          <div
+            className="w-24 h-24 rounded-full text-white text-3xl font-bold flex items-center justify-center mb-4 shadow-xl ring-4 ring-slate-800"
+            style={{ backgroundColor: profileColor, textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}
+          >
+            {initials}
+          </div>
+
+          <h2 className="text-xl font-bold text-white mb-1">{user.displayName || 'Admin'}</h2>
+          <p className="text-slate-400 text-sm mb-6">{user.email}</p>
+
+          <div className="w-full bg-black/20 rounded-xl p-4 border border-white/5 mb-6">
+            <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-2">User ID</p>
+            <div className="flex items-center justify-between bg-black/40 rounded-lg p-2.5 border border-white/5 font-mono text-xs text-blue-300">
+              <span className="truncate">{user.uid}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold transition-colors shadow-lg shadow-blue-600/20"
+          >
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export const AdminDash: React.FC = () => {
@@ -321,6 +86,7 @@ export const AdminDash: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   const [adminLoading, setAdminLoading] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -331,24 +97,18 @@ export const AdminDash: React.FC = () => {
 
           if (snapshot.exists()) {
             setIsAdminAuthenticated(true);
-
             let displayNameToUse = user.displayName;
             if (!displayNameToUse && user.email) {
               displayNameToUse = user.email.split('@')[0];
               await updateProfile(user, { displayName: displayNameToUse });
             }
-
-            setFirebaseUser({
-              uid: user.uid,
-              displayName: displayNameToUse,
-              email: user.email,
-            });
+            setFirebaseUser({ uid: user.uid, displayName: displayNameToUse, email: user.email });
           } else {
             setIsAdminAuthenticated(false);
             setFirebaseUser(null);
           }
         } catch (error) {
-          console.error('Error checking admin status or updating profile:', error);
+          console.error('Error checking admin:', error);
           setIsAdminAuthenticated(false);
           setFirebaseUser(null);
         }
@@ -358,205 +118,186 @@ export const AdminDash: React.FC = () => {
       }
       setAdminLoading(false);
     });
-
     return unsubscribe;
   }, []);
 
-  const handleLoginSuccess = () => {};
-
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+    try { await signOut(auth); } catch (error) { console.error('Logout error:', error); }
   };
 
   const renderContent = () => {
+    // Simple conditional rendering without animation wrapper
     switch (currentRoute) {
-      case 'posts':
-        return <AdminPost />;
-      case 'notifications':
-        return <AdminNotif />;
-      case 'certificates':
-        return <AdminCertificate />;
-      default:
-        return (
-          <AdminPanel
-            userId={firebaseUser?.uid || ''}
-            user={{
-              displayName: firebaseUser?.displayName,
-              email: firebaseUser?.email,
-            }}
-            onNavigate={(r) => setCurrentRoute(r)}
-          />
-        );
+      case 'posts': return <AdminPost />;
+      case 'notifications': return <AdminNotif />;
+      case 'certificates': return <AdminCertificate />;
+      default: return (
+        <AdminPanel
+          userId={firebaseUser?.uid || ''}
+          user={{ displayName: firebaseUser?.displayName, email: firebaseUser?.email }}
+          onNavigate={(r: any) => setCurrentRoute(r)}
+        />
+      );
     }
   };
 
-  const NavItem: React.FC<{ route: AppRoute; Icon: React.ElementType; label: string; isMobile?: boolean }> = ({
-    route,
-    Icon,
-    label,
-    isMobile = false,
-  }) => {
+  const NavItem: React.FC<{ route: AppRoute; Icon: React.ElementType; label: string }> = ({ route, Icon, label }) => {
     const isActive = currentRoute === route;
     return (
       <button
-        onClick={() => {
-          setCurrentRoute(route);
-          if (isMobile) {
-            setMobileMenuOpen(false);
-          }
-        }}
-        className={`flex items-center space-x-3 p-3 rounded-xl transition duration-200 w-full text-left ${
-          isActive
-            ? 'bg-blue-700 text-white shadow-lg shadow-blue-900/50'
-            : 'text-gray-400 hover:bg-gray-800 hover:text-blue-300'
-        }`}
+        onClick={() => { setCurrentRoute(route); setMobileMenuOpen(false); }}
+        className={`relative flex items-center space-x-3 p-3.5 rounded-xl transition-all duration-200 w-full text-left group overflow-hidden ${isActive ? 'text-white' : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
       >
-        <Icon size={20} className={isActive ? 'text-blue-300' : 'text-blue-400'} />
-        <span className="font-medium">{label}</span>
+        {isActive && (
+          <div className="absolute inset-0 bg-blue-600/20 border border-blue-500/30 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.2)]" />
+        )}
+        <Icon size={20} className={`relative z-10 transition-colors ${isActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-300'}`} />
+        <span className="relative z-10 font-medium">{label}</span>
       </button>
     );
   };
 
-  const LogoutButton: React.FC<{ isMobile?: boolean }> = ({ isMobile = false }) => (
-    <button
-      onClick={() => {
-        handleLogout();
-        if (isMobile) setMobileMenuOpen(false);
-      }}
-      className={`flex items-center space-x-3 p-3 rounded-xl transition duration-200 w-full text-left text-gray-400 hover:bg-red-900/30 hover:text-red-300 ${
-        isMobile ? '' : 'mt-auto'
-      }`}
-      aria-label="Logout"
-    >
-      <LogOut size={20} className="text-red-400" />
-      <span className="font-medium">Logout</span>
-    </button>
-  );
-
   if (adminLoading) {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-white text-xl">Memeriksa autentikasi...</div>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full border-4 border-blue-600 border-t-transparent animate-spin"></div>
+          <div className="text-slate-400 text-sm font-medium">Memuat Dashboard...</div>
+        </div>
       </div>
     );
   }
 
-  if (!isAdminAuthenticated) {
-    return <AdminLogin onLoginSuccess={handleLoginSuccess} />;
-  }
+  if (!isAdminAuthenticated) return <AdminLogin onLoginSuccess={() => { }} />;
 
   const displayName = firebaseUser?.displayName;
-  const email = firebaseUser?.email;
-  const uid = firebaseUser?.uid;
-  const initials = getInitials(displayName, email);
-  const displayText = displayName || email?.split('@')[0] || 'Admin';
-  const profileColor = uid ? getColorFromUid(uid) : 'hsl(210, 70%, 35%)'; // fallback
+  const initials = getInitials(displayName, firebaseUser?.email);
+  const profileColor = firebaseUser?.uid ? getColorFromUid(firebaseUser.uid) : 'hsl(210, 70%, 50%)';
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white font-sans">
+    // Fixed background setup to ensure it never cuts off on scroll
+    <div className="relative min-h-screen text-slate-100 font-sans selection:bg-blue-500/30">
+
+      {/* Background Layer - Fixed to viewport */}
+      <div className="fixed inset-0 z-[-1] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-950/20 via-slate-950 to-slate-950 bg-slate-950"></div>
+
       {/* DESKTOP SIDEBAR */}
-      <div className="hidden md:flex">
-        <aside className="w-64 bg-slate-800 border border-slate-700 shadow-2xl fixed h-full p-4 flex flex-col">
-          <div className="flex items-center mb-6 gap-2">
+      <aside className="hidden md:flex flex-col w-72 bg-slate-900 md:bg-slate-900/80 backdrop-blur-none md:backdrop-blur-xl border-r border-white/5 fixed inset-y-0 z-50">
+        <div className="p-6">
+          <button
+            onClick={() => setShowProfileModal(true)}
+            className="flex items-center gap-3 w-full text-left p-3 rounded-xl hover:bg-white/5 transition-all group border border-transparent hover:border-white/5"
+          >
             <div
-              className="w-10 h-10 rounded-full text-white font-bold flex items-center justify-center"
+              className="w-10 h-10 rounded-full text-white font-bold flex items-center justify-center shadow-lg transition-transform group-hover:scale-105"
               style={{ backgroundColor: profileColor }}
             >
               {initials}
             </div>
-            <div>
-              <div className="text-lg font-bold text-white truncate max-w-[140px]">{displayText}</div>
-              {uid && (
-                <div className="text-xs text-gray-400 font-mono truncate max-w-[140px]">
-                  {uid.substring(0, 8)}...
-                </div>
-              )}
+            <div className="min-w-0">
+              <div className="text-sm font-bold text-slate-200 truncate">{displayName}</div>
+              <div className="text-xs text-slate-500 font-mono truncate">ID: {firebaseUser?.uid.slice(0, 8)}</div>
             </div>
-          </div>
-          <nav className="space-y-2 flex-grow">
-            <NavItem route="dashboard" Icon={List} label="Beranda" />
-            <NavItem route="posts" Icon={List} label="Postingan" />
-            <NavItem route="notifications" Icon={Bell} label="Notifikasi" />
-            <NavItem route="certificates" Icon={Award} label="Kirim Sertifikat" />
-          </nav>
-          <LogoutButton />
-        </aside>
-      </div>
+          </button>
+        </div>
+
+        <nav className="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar">
+          <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Menu Utama</div>
+          <NavItem route="dashboard" Icon={LayoutDashboard} label="Beranda" />
+          <NavItem route="posts" Icon={List} label="Postingan & Lomba" />
+          <NavItem route="notifications" Icon={Bell} label="Notifikasi" />
+          <NavItem route="certificates" Icon={Award} label="Kirim Sertifikat" />
+        </nav>
+
+        <div className="p-4 border-t border-white/5">
+          <button
+            onClick={handleLogout}
+            className="flex items-center space-x-3 p-3 rounded-xl transition duration-200 w-full text-left text-slate-400 hover:bg-red-500/10 hover:text-red-400 group"
+          >
+            <LogOut size={20} className="group-hover:translate-x-1 transition-transform" />
+            <span className="font-medium">Log Out</span>
+          </button>
+        </div>
+      </aside>
 
       {/* MOBILE NAVBAR */}
-      <div className="md:hidden fixed top-0 left-0 right-0 bg-gray-900 border-b border-slate-700 z-50 px-4 py-3 flex justify-between items-center">
-        <div className="text-xl font-bold text-white truncate max-w-[150px]">{displayText}</div>
-        <button
-          onClick={() => setMobileMenuOpen(true)}
-          className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white"
-          aria-label="Buka menu"
-        >
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-slate-900 shadow-xl border-b border-white/5 z-50 px-4 flex justify-between items-center transition-all duration-300">
+        <div className="flex items-center gap-3">
+          <span className="text-lg font-bold text-white truncate max-w-[250px]">{displayName || 'Admin'}</span>
+        </div>
+        <button onClick={() => setMobileMenuOpen(true)} className="p-2 rounded-lg hover:bg-white/10 text-slate-300 transition-colors">
           <Menu size={24} />
         </button>
       </div>
 
-      {/* MOBILE MENU */}
+      {/* MOBILE MENU - Optimized with CSS Transitions */}
       <div
-        className={`fixed top-0 right-0 w-64 bg-gray-900 z-40 transform transition-transform duration-300 ease-in-out ${
-          mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
-        } md:hidden flex flex-col`}
-        style={{ top: '56px', height: 'calc(100vh - 56px)' }}
+        className={`fixed inset-0 z-50 md:hidden transition-all duration-300 ${mobileMenuOpen ? 'visible' : 'invisible delay-300'
+          }`}
       >
-        <div className="p-4 pb-2 flex justify-between items-center border-b border-slate-700">
-          <div className="flex items-center">
-            <div
-              className="w-10 h-10 rounded-full text-white font-bold flex items-center justify-center mr-3"
-              style={{ backgroundColor: profileColor }}
-            >
-              {initials}
-            </div>
-            <div>
-              <div className="text-lg font-bold text-white">{displayText}</div>
-              {uid && (
-                <div className="text-xs text-gray-400 font-mono">
-                  {uid.substring(0, 12)}...
-                </div>
-              )}
-            </div>
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-black/80 transition-opacity duration-300 ${mobileMenuOpen ? 'opacity-100' : 'opacity-0'
+            }`}
+          onClick={() => setMobileMenuOpen(false)}
+        />
+
+        {/* Drawer */}
+        <div
+          className={`absolute top-0 right-0 w-72 h-full bg-slate-900 border-l border-white/10 shadow-2xl flex flex-col transition-transform duration-300 ease-out ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+            }`}
+        >
+          <div className="p-4 border-b border-white/5 flex justify-between items-center bg-slate-900/50">
+            <span className="text-sm font-semibold text-slate-400">Navigasi</span>
+            <button onClick={() => setMobileMenuOpen(false)} className="p-2 hover:bg-white/10 rounded-lg text-slate-400 transition-colors">
+              <X size={20} />
+            </button>
           </div>
-          <button
-            onClick={() => setMobileMenuOpen(false)}
-            className="text-gray-300 hover:text-white"
-            aria-label="Tutup menu"
-          >
-            <X size={24} />
-          </button>
-        </div>
 
-        <div className="p-4 pt-4 flex-1 overflow-y-auto">
-          <nav className="space-y-2">
-            <NavItem route="dashboard" Icon={List} label="Beranda" isMobile={true} />
-            <NavItem route="posts" Icon={List} label="Postingan" isMobile={true} />
-            <NavItem route="notifications" Icon={Bell} label="Notifikasi" isMobile={true} />
-            <NavItem route="certificates" Icon={Award} label="Kirim Sertifikat" isMobile={true} />
-          </nav>
-        </div>
+          <div className="p-4 border-b border-white/5">
+            <button onClick={() => setShowProfileModal(true)} className="flex items-center gap-3 w-full p-2 rounded-lg bg-white/5 border border-white/5">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-lg" style={{ backgroundColor: profileColor }}>{initials}</div>
+              <div className="text-left overflow-hidden">
+                <div className="font-bold text-white truncate">{displayName}</div>
+                <div className="text-xs text-slate-400 truncate">{firebaseUser?.email}</div>
+              </div>
+            </button>
+          </div>
 
-        <div className="px-4 pb-4">
-          <LogoutButton isMobile={true} />
+          <div className="p-4 space-y-2 flex-1 overflow-y-auto">
+            <NavItem route="dashboard" Icon={LayoutDashboard} label="Beranda" />
+            <NavItem route="posts" Icon={List} label="Postingan" />
+            <NavItem route="notifications" Icon={Bell} label="Notifikasi" />
+            <NavItem route="certificates" Icon={Award} label="Kirim Sertifikat" />
+          </div>
+
+          <div className="p-4 border-t border-white/5">
+            <button
+              onClick={() => { handleLogout(); setMobileMenuOpen(false); }}
+              className="flex items-center space-x-3 p-3 rounded-xl w-full text-slate-400 hover:bg-red-500/10 hover:text-red-400"
+            >
+              <LogOut size={20} />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* OVERLAY BLUR */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 md:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      <main className="p-4 md:p-8 md:ml-64 pt-20 md:pt-8">
-        {renderContent()}
+      {/* MAIN CONTENT AREA */}
+      <main className="md:pl-72 pt-16 md:pt-0 min-h-screen transition-all duration-300">
+        <div className="max-w-7xl mx-auto p-4 md:p-8">
+          {renderContent()}
+        </div>
       </main>
+
+      <ProfileDetailModal
+        isOpen={showProfileModal}
+        onClose={() => setShowProfileModal(false)}
+        user={{ displayName, email: firebaseUser?.email, uid: firebaseUser?.uid || '' }}
+        initials={initials}
+        profileColor={profileColor}
+      />
     </div>
   );
 };

@@ -7,12 +7,11 @@ import {
   User,
   Edit2,
   Trash2,
-  X,
   Trophy,
   Medal,
   Tag,
 } from 'lucide-react';
-import { InputField } from './AdminCommon';
+import { InputField, Modal, GlassCard } from './AdminCommon';
 import {
   ref,
   push,
@@ -40,7 +39,7 @@ interface Notification {
 const NotificationForm: React.FC<{
   onClose: () => void;
   notificationToEdit?: Notification | null;
-  onSubmit: ( data: Pick<Notification, 'title' | 'message' | 'type' | 'badge'>) => void;
+  onSubmit: (data: Pick<Notification, 'title' | 'message' | 'type' | 'badge'>) => void;
   isSubmitting: boolean;
 }> = ({ onClose, notificationToEdit, onSubmit, isSubmitting }) => {
   const [title, setTitle] = useState(notificationToEdit?.title || '');
@@ -70,7 +69,7 @@ const NotificationForm: React.FC<{
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <InputField
         id="notifTitle"
         label="Judul Pesan"
@@ -88,92 +87,64 @@ const NotificationForm: React.FC<{
         Icon={BookOpen}
       />
 
-      <div className="space-y-1">
-        <label htmlFor="notifType" className="text-sm font-medium text-white flex items-center">
-          <Trophy size={16} className="mr-2 text-blue-400" />
-          Tipe Notifikasi <span className="text-red-400 ml-1">*</span>
+      <div className="space-y-2">
+        <label htmlFor="notifType" className="text-xs md:text-sm font-semibold text-slate-300 flex items-center gap-2">
+          <Trophy size={16} className="text-blue-400" />
+          Tipe Notifikasi <span className="text-red-400">*</span>
         </label>
         <div className="flex space-x-2">
           <button
             type="button"
             onClick={() => setType('lomba')}
-            className={`flex-1 py-2 px-3 rounded-lg border transition ${
-              type === 'lomba'
-                ? 'bg-blue-700/50 border-blue-500 text-blue-300'
-                : 'bg-gray-800 border-slate-600 text-gray-300 hover:bg-gray-700'
-            }`}
+            className={`flex-1 py-3 px-3 rounded-xl border text-sm font-medium transition-all duration-200 ${type === 'lomba'
+              ? 'bg-blue-600/20 border-blue-500 text-blue-300'
+              : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+              }`}
           >
-            <Trophy size={16} className="inline mr-1" /> Lomba
+            <Trophy size={16} className="inline mr-2" /> Lomba
           </button>
           <button
             type="button"
             onClick={() => setType('beasiswa')}
-            className={`flex-1 py-2 px-3 rounded-lg border transition ${
-              type === 'beasiswa'
-                ? 'bg-purple-700/50 border-purple-500 text-purple-300'
-                : 'bg-gray-800 border-slate-600 text-gray-300 hover:bg-gray-700'
-            }`}
+            className={`flex-1 py-3 px-3 rounded-xl border text-sm font-medium transition-all duration-200 ${type === 'beasiswa'
+              ? 'bg-purple-600/20 border-purple-500 text-purple-300'
+              : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+              }`}
           >
-            <Medal size={16} className="inline mr-1" /> Beasiswa
+            <Medal size={16} className="inline mr-2" /> Beasiswa
           </button>
         </div>
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="notifBadge" className="text-sm font-medium text-white flex items-center">
-          <Tag size={16} className="mr-2 text-blue-400" />
-          Badge (Opsional)
-        </label>
-        <input
-          id="notifBadge"
-          type="text"
-          value={badge}
-          onChange={(e) => setBadge(e.target.value)}
-          placeholder="Contoh: Juara 1, Finalis, Peserta"
-          className="w-full px-4 py-2 border border-slate-600 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-slate-500 transition duration-150"
-        />
-      </div>
+      <InputField
+        id="notifBadge"
+        label="Badge (Opsional)"
+        type="text"
+        value={badge}
+        onChange={setBadge}
+        Icon={Tag}
+        placeholder="Contoh: Juara 1, Finalis"
+      />
 
-      {error && <p className="text-red-400 text-sm italic">{error}</p>}
-      <div className="flex justify-end space-x-3 pt-2">
+      {error && <p className="text-red-400 text-sm italic bg-red-500/10 p-3 rounded-lg border border-red-500/20">{error}</p>}
+
+      <div className="flex justify-end space-x-3 pt-4 border-t border-white/10">
         <button
           type="button"
           onClick={onClose}
-          className="px-3 py-1.5 text-sm bg-gray-700 text-white rounded hover:bg-gray-600 transition"
+          className="px-5 py-2.5 text-sm bg-slate-800 text-slate-300 rounded-xl hover:bg-slate-700 transition font-medium"
         >
           Batal
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-3 py-1.5 text-sm bg-blue-600 text-white font-medium rounded hover:bg-blue-500 transition disabled:opacity-50"
+          className="px-5 py-2.5 text-sm bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 transition shadow-lg shadow-blue-600/20 disabled:opacity-50"
         >
           {isSubmitting ? 'Menyimpan...' : notificationToEdit ? 'Simpan Perubahan' : 'Kirim'}
         </button>
       </div>
     </form>
-  );
-};
-
-const Modal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-}> = ({ isOpen, onClose, title, children }) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-800 border border-slate-700 rounded-xl w-full max-w-md">
-        <div className="flex justify-between items-center p-4 border-b border-slate-700">
-          <h2 className="text-lg font-bold text-white">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
-            <X size={20} />
-          </button>
-        </div>
-        <div className="p-4">{children}</div>
-      </div>
-    </div>
   );
 };
 
@@ -186,7 +157,6 @@ const NotificationCard: React.FC<{
     return new Date(isoString).toLocaleDateString('id-ID', {
       day: 'numeric',
       month: 'long',
-      year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -203,47 +173,47 @@ const NotificationCard: React.FC<{
   };
 
   return (
-    <div className="bg-gray-900 border border-slate-700 rounded-lg p-4 hover:bg-gray-850 transition">
-      <div className="flex justify-between items-start">
+    <div className="bg-white/5 border border-white/5 rounded-xl p-4 hover:bg-white/10 transition-all duration-200 group">
+      <div className="flex justify-between items-start gap-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            {notification.type === 'lomba' ? (
-              <Trophy className="w-4 h-4 text-yellow-400" />
-            ) : (
-              <Medal className="w-4 h-4 text-purple-400" />
-            )}
-            <span className="text-xs font-medium px-2 py-0.5 rounded bg-slate-700/50 text-slate-300">
-              {notification.type === 'lomba' ? 'Lomba' : 'Beasiswa'}
+          <div className="flex items-center gap-2 mb-2">
+            <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] uppercase font-bold tracking-wide border border-white/5 ${notification.type === 'lomba' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'
+              }`}>
+              {notification.type === 'lomba' ? <Trophy size={10} /> : <Medal size={10} />}
+              {notification.type}
             </span>
             {notification.badge && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded bg-blue-700/30 text-blue-300">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/20">
+                <Tag size={10} />
                 {notification.badge}
               </span>
             )}
+            <span className="text-[10px] text-slate-500 ml-auto sm:ml-0">
+              {formatDate(notification.timestamp)}
+            </span>
           </div>
-          <h3 className="font-bold text-blue-400 text-sm md:text-base line-clamp-1">
+          <h3 className="font-bold text-white text-sm md:text-base line-clamp-1 group-hover:text-blue-400 transition-colors mb-1">
             {notification.title}
           </h3>
-          <p className="text-gray-300 text-xs md:text-sm mt-1 line-clamp-2">
+          <p className="text-slate-400 text-xs md:text-sm line-clamp-2 leading-relaxed">
             {notification.message}
           </p>
-          <div className="mt-2 text-xs text-gray-500 flex items-center">
-            <User size={12} className="mr-1" />
+          <div className="mt-2 text-[10px] text-slate-600 flex items-center">
+            <User size={10} className="mr-1" />
             {notification.sentBy.displayName || notification.sentBy.email}
           </div>
-          <div className="text-xs text-gray-500 mt-1">{formatDate(notification.timestamp)}</div>
         </div>
-        <div className="flex space-x-1 ml-2 flex-shrink-0">
+        <div className="flex flex-col sm:flex-row gap-1 flex-shrink-0">
           <button
             onClick={() => onEdit(notification)}
-            className="p-1.5 bg-blue-700/80 rounded text-white hover:bg-blue-600 transition"
+            className="p-2 bg-blue-600/10 rounded-lg text-blue-400 hover:bg-blue-600 hover:text-white transition border border-blue-500/20"
             aria-label="Edit"
           >
             <Edit2 size={14} />
           </button>
           <button
             onClick={handleDelete}
-            className="p-1.5 bg-red-700/80 rounded text-white hover:bg-red-600 transition"
+            className="p-2 bg-red-600/10 rounded-lg text-red-400 hover:bg-red-600 hover:text-white transition border border-red-500/20"
             aria-label="Hapus"
           >
             <Trash2 size={14} />
@@ -295,67 +265,67 @@ const AdminNotif: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-const handleSendNotification = async (e: React.FormEvent) => {
-  e.preventDefault();
-  const trimmedTitle = title.trim();
-  const trimmedMessage = message.trim();
+  const handleSendNotification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedTitle = title.trim();
+    const trimmedMessage = message.trim();
 
-  if (!trimmedTitle || !trimmedMessage) {
-    setSubmitStatus({ message: 'Judul dan pesan wajib diisi.', success: false });
-    return;
-  }
+    if (!trimmedTitle || !trimmedMessage) {
+      setSubmitStatus({ message: 'Judul dan pesan wajib diisi.', success: false });
+      return;
+    }
 
-  const currentUser = auth.currentUser;
-  if (!currentUser) {
-    setSubmitStatus({ message: 'Anda harus login sebagai admin.', success: false });
-    return;
-  }
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      setSubmitStatus({ message: 'Anda harus login sebagai admin.', success: false });
+      return;
+    }
 
-  setIsSending(true);
-  setSubmitStatus(null);
+    setIsSending(true);
+    setSubmitStatus(null);
 
-  // Data notifikasi
-  const notifData = {
-    title: trimmedTitle,
-    message: trimmedMessage,
-    type,
-    badge: badge.trim() || null,
-    timestamp: new Date().toISOString(),
-    sentBy: {
-      uid: currentUser.uid,
-      email: currentUser.email,
-      displayName: currentUser.displayName,
-    },
+    // Data notifikasi
+    const notifData = {
+      title: trimmedTitle,
+      message: trimmedMessage,
+      type,
+      badge: badge.trim() || null,
+      timestamp: new Date().toISOString(),
+      sentBy: {
+        uid: currentUser.uid,
+        email: currentUser.email,
+        displayName: currentUser.displayName,
+      },
+    };
+
+    try {
+      // Simpan ke folder admin (untuk manajemen CRUD)
+      const adminNotifRef = ref(rtdb, `admins/${currentUser.uid}/notifications`);
+      const newAdminNotifRef = push(adminNotifRef);
+      await set(newAdminNotifRef, notifData);
+
+      // Simpan ke path global (untuk peserta)
+      const globalNotifRef = ref(rtdb, 'notifications');
+      const newGlobalNotifRef = push(globalNotifRef);
+      await set(newGlobalNotifRef, {
+        ...notifData,
+        adminId: currentUser.uid,
+      });
+
+      setSubmitStatus({ message: 'Notifikasi berhasil dikirim!', success: true });
+      setTitle('');
+      setMessage('');
+      setType('lomba');
+      setBadge('');
+    } catch (error) {
+      console.error('Gagal mengirim notifikasi:', error);
+      setSubmitStatus({ message: 'Gagal mengirim notifikasi. Coba lagi.', success: false });
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  try {
-    // Simpan ke folder admin (untuk manajemen CRUD)
-    const adminNotifRef = ref(rtdb, `admins/${currentUser.uid}/notifications`);
-    const newAdminNotifRef = push(adminNotifRef);
-    await set(newAdminNotifRef, notifData);
-
-    // Simpan ke path global (untuk peserta)
-    const globalNotifRef = ref(rtdb, 'notifications');
-    const newGlobalNotifRef = push(globalNotifRef);
-    await set(newGlobalNotifRef, {
-      ...notifData,
-      adminId: currentUser.uid, 
-    });
-
-    setSubmitStatus({ message: 'Notifikasi berhasil dikirim!', success: true });
-    setTitle('');
-    setMessage('');
-    setType('lomba');
-    setBadge('');
-  } catch (error) {
-    console.error('Gagal mengirim notifikasi:', error);
-    setSubmitStatus({ message: 'Gagal mengirim notifikasi. Coba lagi.', success: false });
-  } finally {
-    setIsSending(false);
-  }
-};
-
-  const handleEditNotification = async ( data: Pick<Notification, 'title' | 'message' | 'type' | 'badge'>) => {
+  const handleEditNotification = async (data: Pick<Notification, 'title' | 'message' | 'type' | 'badge'>) => {
     if (!notifToEdit || !auth.currentUser) return;
     setIsModalSubmitting(true);
     try {
@@ -393,13 +363,19 @@ const handleSendNotification = async (e: React.FormEvent) => {
   };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="md:text-3xl font-extrabold text-white border-b border-slate-700 pb-3">
-          Kirim Notifikasi ke Peserta
-        </h1>
-        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-xl mt-4">
-          <form onSubmit={handleSendNotification} className="space-y-4">
+    <div className="space-y-8 pb-24 animate-in fade-in duration-300">
+      <div className="space-y-6">
+        <GlassCard>
+          <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
+            <div className="p-2 bg-purple-600/20 rounded-lg text-purple-400">
+              <Bell className="w-6 h-6" />
+            </div>
+            <h1 className="text-xl md:text-2xl font-bold text-white">
+              Kirim Notifikasi
+            </h1>
+          </div>
+
+          <form onSubmit={handleSendNotification} className="space-y-5">
             <InputField
               id="notifTitle"
               label="Judul Pesan"
@@ -407,6 +383,7 @@ const handleSendNotification = async (e: React.FormEvent) => {
               value={title}
               onChange={setTitle}
               Icon={Bell}
+              placeholder="Ex: Pemenang Lomba Design"
             />
             <InputField
               id="notifMessage"
@@ -415,73 +392,67 @@ const handleSendNotification = async (e: React.FormEvent) => {
               value={message}
               onChange={setMessage}
               Icon={BookOpen}
+              placeholder="Tulis pesan lengkap yang akan diterima peserta..."
             />
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-white flex items-center">
-                <Trophy size={16} className="mr-2 text-blue-400" />
-                Tipe Notifikasi <span className="text-red-400 ml-1">*</span>
+            <div className="space-y-2">
+              <label className="text-xs md:text-sm font-semibold text-slate-300 flex items-center gap-2">
+                <Trophy size={16} className="text-blue-400" />
+                Tipe Notifikasi <span className="text-red-400">*</span>
               </label>
               <div className="flex space-x-2">
                 <button
                   type="button"
                   onClick={() => setType('lomba')}
-                  className={`flex-1 py-2 px-3 rounded-lg border transition ${
-                    type === 'lomba'
-                      ? 'bg-blue-700/50 border-blue-500 text-blue-300'
-                      : 'bg-gray-800 border-slate-600 text-gray-300 hover:bg-gray-700'
-                  }`}
+                  className={`flex-1 py-3 px-3 rounded-xl border text-sm font-medium transition-all duration-200 ${type === 'lomba'
+                    ? 'bg-blue-600/20 border-blue-500 text-blue-300'
+                    : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                    }`}
                 >
-                  <Trophy size={16} className="inline mr-1" /> Lomba
+                  <Trophy size={16} className="inline mr-2" /> Lomba
                 </button>
                 <button
                   type="button"
                   onClick={() => setType('beasiswa')}
-                  className={`flex-1 py-2 px-3 rounded-lg border transition ${
-                    type === 'beasiswa'
-                      ? 'bg-purple-700/50 border-purple-500 text-purple-300'
-                      : 'bg-gray-800 border-slate-600 text-gray-300 hover:bg-gray-700'
-                  }`}
+                  className={`flex-1 py-3 px-3 rounded-xl border text-sm font-medium transition-all duration-200 ${type === 'beasiswa'
+                    ? 'bg-purple-600/20 border-purple-500 text-purple-300'
+                    : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
+                    }`}
                 >
-                  <Medal size={16} className="inline mr-1" /> Beasiswa
+                  <Medal size={16} className="inline mr-2" /> Beasiswa
                 </button>
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-white flex items-center">
-                <Tag size={16} className="mr-2 text-blue-400" />
-                Badge (Opsional)
-              </label>
-              <input
-                type="text"
-                value={badge}
-                onChange={(e) => setBadge(e.target.value)}
-                placeholder="Contoh: Juara 1, Finalis, Peserta"
-                className="w-full px-4 py-2 border border-slate-600 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-slate-500 transition duration-150"
-              />
-            </div>
+            <InputField
+              id="notifBadge"
+              label="Badge (Opsional)"
+              type="text"
+              value={badge}
+              onChange={setBadge}
+              Icon={Tag}
+              placeholder="Contoh: Juara 1"
+              required={false}
+            />
 
             {submitStatus && (
               <div
-                className={`p-3 rounded text-sm ${
-                  submitStatus.success
-                    ? 'bg-green-800/50 text-green-200 border border-green-600'
-                    : 'bg-red-800/50 text-red-200 border border-red-600'
-                }`}
+                className={`p-4 rounded-xl text-sm border ${submitStatus.success
+                  ? 'bg-green-500/10 text-green-300 border-green-500/20'
+                  : 'bg-red-500/10 text-red-300 border-red-500/20'
+                  }`}
               >
                 {submitStatus.message}
               </div>
             )}
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end pt-4 border-t border-white/10">
               <button
                 type="submit"
                 disabled={isSending || !title.trim() || !message.trim()}
-                className={`px-4 py-2 flex items-center justify-center font-bold rounded-lg transition ${
-                  isSending
-                    ? 'bg-gray-600 cursor-not-allowed'
-                    : 'bg-blue-700 text-white hover:bg-blue-500 shadow-md shadow-blue-800/50'
-                }`}
+                className={`px-6 py-3 flex items-center justify-center font-bold rounded-xl transition-all shadow-lg active:scale-95 ${isSending
+                  ? 'bg-slate-700 cursor-not-allowed text-slate-400'
+                  : 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-600/20'
+                  }`}
               >
                 {isSending ? (
                   <>
@@ -497,19 +468,25 @@ const handleSendNotification = async (e: React.FormEvent) => {
               </button>
             </div>
           </form>
-        </div>
+        </GlassCard>
       </div>
 
       <div>
-        <h2 className="text-2xl font-bold text-white border-b border-slate-700 pb-3">
-          Notifikasi Terkirim ({notifications.length})
+        <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-4 px-1">
+          <Clock size={18} className="text-slate-400" />
+          Riwayat Notifikasi <span className="text-slate-500 text-sm font-normal">({notifications.length})</span>
         </h2>
         {loading ? (
-          <p className="text-gray-400">Memuat notifikasi...</p>
+          <div className="flex justify-center p-8">
+            <div className="w-8 h-8 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : notifications.length === 0 ? (
-          <p className="text-gray-500 italic">Belum ada notifikasi yang dikirim.</p>
+          <div className="text-center py-12 bg-white/5 rounded-xl border border-white/5 border-dashed">
+            <Bell size={32} className="mx-auto mb-3 text-slate-600" />
+            <p className="text-slate-500 text-sm">Belum ada notifikasi yang dikirim.</p>
+          </div>
         ) : (
-          <div className="space-y-3 mt-4">
+          <div className="space-y-3">
             {notifications.map((notif) => (
               <NotificationCard
                 key={notif.id}

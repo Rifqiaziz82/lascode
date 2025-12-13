@@ -56,6 +56,7 @@ export default function CommunityView() {
   const [type, setType] = useState<'lomba' | 'beasiswa' | 'seminar'>('lomba');
   const [members, setMembers] = useState<{ id: string; name: string; role: string }[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
+  const [userJoined, setUserJoined] = useState(false);
 
   useEffect(() => {
     const loadCommunities = async () => {
@@ -174,38 +175,50 @@ export default function CommunityView() {
   };
 
   const handleJoinCommunity = async (communityId: string) => {
-    if (!user) return;
+  if (!user) return;
 
-    try {
-      // Tambahkan ke memberships
-      await addDoc(collection(db, 'memberships'), {
-        community_id: communityId,
-        user_id: user.id,
-        role: 'member',
-        joined_at: serverTimestamp(),
-      });
+  try {
+    await addDoc(collection(db, 'memberships'), {
+      community_id: communityId,
+      user_id: user.id,
+      role: 'member',
+      joined_at: serverTimestamp(),
+    });
 
-      // Update members_count
-      const communityRef = doc(db, 'communities', communityId);
-      await updateDoc(communityRef, {
-        members_count: increment(1),
-      });
+    await updateDoc(doc(db, 'communities', communityId), {
+      members_count: increment(1),
+    });
 
-      alert('Berhasil gabung komunitas!');
-      // Bisa redirect ke halaman forum komunitas
-    } catch (err) {
-      console.error('Gagal gabung:', err);
-      alert('Gagal gabung komunitas.');
+    alert('Berhasil gabung komunitas!');
+    setUserJoined(true); // ✅ Update state lokal
+
+    // Opsional: refresh daftar anggota
+    if (selectedCommunity?.id === communityId) {
+      loadMembers(communityId);
     }
-  };
+  } catch (err) {
+    console.error('Gagal gabung:', err);
+    alert('Gagal gabung komunitas.');
+  }
+};
 
   const handleCommunityClick = async (community: Community) => {
-    setSelectedCommunity(community);
-    setViewMode('detail');
+  setSelectedCommunity(community);
+  setViewMode('detail');
 
-    // ✅ Muat anggota
-    await loadMembers(community.id);
-  };
+  // Muat anggota & cek apakah user sudah join
+  await loadMembers(community.id);
+
+  if (user) {
+    const membershipQuery = query(
+      collection(db, 'memberships'),
+      where('community_id', '==', community.id),
+      where('user_id', '==', user.id)
+    );
+    const snapshot = await getDocs(membershipQuery);
+    setUserJoined(!snapshot.empty);
+  }
+};
 
   const renderMenu = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -397,12 +410,21 @@ export default function CommunityView() {
               </div>
             </div>
             {user ? (
-              <button
-                onClick={() => selectedCommunity && handleJoinCommunity(selectedCommunity.id)}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
-              >
-                Gabung
-              </button>
+              userJoined ? (
+                <button
+                  disabled
+                  className="px-6 py-2 bg-green-600/50 text-green-300 rounded-lg font-medium cursor-not-allowed"
+                >
+                  Sudah Bergabung
+                </button>
+              ) : (
+                <button
+                  onClick={() => selectedCommunity && handleJoinCommunity(selectedCommunity.id)}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
+                >
+                  Gabung
+                </button>
+              )
             ) : (
               <button
                 onClick={() => navigate('/login', { state: { message: 'Login untuk gabung komunitas' } })}

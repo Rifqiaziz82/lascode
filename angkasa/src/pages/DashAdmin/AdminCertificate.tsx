@@ -4,6 +4,8 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { searchUsers } from '../../lib/userService';
 import { Search, Send, Award, X } from 'lucide-react';
 
+import { InputField, GlassCard } from './AdminCommon';
+
 export default function AdminCertificate() {
   const [recipient, setRecipient] = useState<{ id: string; name: string; email: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,7 +75,7 @@ export default function AdminCertificate() {
       });
 
       alert(`✅ Sertifikat berhasil dikirim ke ${recipient.name}!`);
-      
+
       // Reset form
       setFormData({
         title: '',
@@ -89,24 +91,28 @@ export default function AdminCertificate() {
       setSearchResults([]);
     } catch (error) {
       console.error("Error sending certificate:", error);
-      alert("❌ Gagal mengirim sertifikat");
+      alert("Gagal mengirim sertifikat");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-slate-800 border border-slate-700 p-6 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-          <Award className="text-blue-400" />
-          Kirim Sertifikat Baru
-        </h2>
+    <div className="space-y-6 pb-24 md:pb-8 animate-in fade-in duration-300">
+      <GlassCard>
+        <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
+          <div className="p-2 bg-blue-600/20 rounded-lg text-blue-400">
+            <Award className="w-6 h-6" />
+          </div>
+          <h2 className="text-xl md:text-2xl font-bold text-white">
+            Kirim Sertifikat
+          </h2>
+        </div>
 
         {/* 1. Recipient Selection */}
-        <div className="mb-8 p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
-          <label className="block text-slate-400 text-sm mb-2">Pilih Penerima</label>
-          
+        <div className="mb-6 md:mb-8 p-4 bg-slate-900/40 rounded-xl border border-white/5 backdrop-blur-sm">
+          <label className="block text-slate-300 text-sm font-semibold mb-3">Pilih Penerima</label>
+
           {!recipient ? (
             <div className="space-y-4">
               <form onSubmit={handleSearch} className="flex gap-2">
@@ -117,32 +123,32 @@ export default function AdminCertificate() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Cari user by nama..."
-                    className="w-full bg-slate-800 border border-slate-600 rounded-lg py-2 pl-10 pr-4 text-white focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full bg-slate-800/50 border border-slate-600/50 rounded-xl py-3 pl-10 pr-4 text-white text-sm focus:outline-none focus:border-blue-500 transition-all placeholder:text-slate-500"
                   />
                 </div>
-                <button 
+                <button
                   type="submit"
                   disabled={isSearching}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium text-sm transition-all disabled:opacity-50 whitespace-nowrap shadow-lg shadow-blue-600/20"
                 >
-                  {isSearching ? 'Mencari...' : 'Cari'}
+                  {isSearching ? '...' : 'Cari'}
                 </button>
               </form>
 
               {searchResults.length > 0 && (
-                <div className="bg-slate-800 rounded-lg border border-slate-600 overflow-hidden max-h-48 overflow-y-auto">
+                <div className="bg-slate-800/80 rounded-xl border border-white/10 overflow-hidden max-h-48 overflow-y-auto custom-scrollbar backdrop-blur-md">
                   {searchResults.map((user: { id: string; name: string; email: string }) => (
                     <button
                       key={user.id}
                       onClick={() => setRecipient(user)}
-                      className="w-full p-3 flex items-center gap-3 hover:bg-slate-700/50 border-b border-slate-700/50 last:border-0 text-left transition-colors"
+                      className="w-full p-3 flex items-center gap-3 hover:bg-white/5 border-b border-white/5 last:border-0 text-left transition-colors"
                     >
-                      <div className="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center text-xs font-bold text-white">
+                      <div className="w-8 h-8 rounded-full bg-slate-700 flex-shrink-0 flex items-center justify-center text-xs font-bold text-white border border-white/10">
                         {user.name.charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                        <div className="text-white font-medium text-sm">{user.name}</div>
-                        <div className="text-slate-400 text-xs">{user.email}</div>
+                      <div className="min-w-0">
+                        <div className="text-white font-medium text-sm truncate">{user.name}</div>
+                        <div className="text-slate-400 text-xs truncate">{user.email}</div>
                       </div>
                     </button>
                   ))}
@@ -150,130 +156,89 @@ export default function AdminCertificate() {
               )}
             </div>
           ) : (
-            <div className="flex items-center justify-between bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+            <div className="flex items-center justify-between bg-blue-600/10 border border-blue-500/20 p-4 rounded-xl">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-blue-600 flex-shrink-0 flex items-center justify-center text-white font-bold shadow-lg shadow-blue-600/20">
                   {recipient.name.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <div className="text-blue-200 font-medium">Kepada: {recipient.name}</div>
-                  <div className="text-blue-300/60 text-sm">{recipient.email}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-blue-200 font-bold truncate">Kepada: {recipient.name}</div>
+                  <div className="text-blue-300/60 text-sm truncate">{recipient.email}</div>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setRecipient(null)}
-                className="p-2 hover:bg-blue-500/20 rounded-lg text-blue-300 transition-colors"
+                className="p-2 hover:bg-blue-500/20 rounded-lg text-blue-300 transition-colors flex-shrink-0"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
           )}
         </div>
 
         {/* 2. Certificate Details Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="space-y-5 md:space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            <InputField
+              id="title" label="Judul Sertifikat" type="text"
+              value={formData.title} onChange={v => setFormData(p => ({ ...p, title: v }))}
+              placeholder="Ex: Juara 1 Web Design..."
+            />
+            <InputField
+              id="issuer" label="Penyelenggara / Issuer" type="text"
+              value={formData.issuer} onChange={v => setFormData(p => ({ ...p, issuer: v }))}
+              placeholder="Ex: Universitas Indonesia"
+            />
+            <InputField
+              id="date" label="Tanggal" type="date"
+              value={formData.date} onChange={v => setFormData(p => ({ ...p, date: v }))}
+            />
+            <InputField
+              id="badge" label="Badge / Predikat" type="select"
+              value={formData.badge} onChange={v => setFormData(p => ({ ...p, badge: v }))}
+              options={[
+                { value: "Peserta", label: "Peserta" },
+                { value: "Finalis", label: "Finalis" },
+                { value: "Juara 1", label: "Juara 1" },
+                { value: "Juara 2", label: "Juara 2" },
+                { value: "Juara 3", label: "Juara 3" },
+                { value: "Juara Harapan", label: "Juara Harapan" },
+                { value: "Best Speaker", label: "Best Speaker" },
+                { value: "Best Design", label: "Best Design" },
+              ]}
+            />
             <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Judul Sertifikat</label>
-              <input
-                type="text"
-                required
-                value={formData.title}
-                onChange={e => setFormData({...formData, title: e.target.value})}
-                placeholder="Ex: Juara 1 Web Design..."
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Penyelenggara / Issuer</label>
-              <input
-                type="text"
-                required
-                value={formData.issuer}
-                onChange={e => setFormData({...formData, issuer: e.target.value})}
-                placeholder="Ex: Universitas Indonesia"
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Tanggal</label>
-              <input
-                type="date"
-                required
-                value={formData.date}
-                onChange={e => setFormData({...formData, date: e.target.value})}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Badge / Predikat</label>
-              <select
-                value={formData.badge}
-                onChange={e => setFormData({...formData, badge: e.target.value})}
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-              >
-                <option value="Peserta">Peserta</option>
-                <option value="Finalis">Finalis</option>
-                <option value="Juara 1">Juara 1</option>
-                <option value="Juara 2">Juara 2</option>
-                <option value="Juara 3">Juara 3</option>
-                <option value="Juara Harapan">Juara Harapan</option>
-                <option value="Best Speaker">Best Speaker</option>
-                <option value="Best Design">Best Design</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Icon Tipe</label>
-              <div className="flex bg-slate-700/50 rounded-lg p-1 border border-slate-600">
+              <label className="text-slate-300 text-xs md:text-sm font-semibold">Icon Tipe</label>
+              <div className="flex bg-slate-800/50 rounded-xl p-1 border border-white/5">
                 {(['medal', 'trophy', 'star'] as const).map((icon) => (
                   <button
-                    key={icon}
-                    type="button"
-                    onClick={() => setFormData({...formData, icon})}
-                    className={`flex-1 py-1.5 rounded-md flex justify-center transition-colors ${
-                      formData.icon === icon ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-                    }`}
+                    key={icon} type="button" onClick={() => setFormData({ ...formData, icon })}
+                    className={`flex-1 py-3 text-sm rounded-lg flex justify-center items-center gap-2 transition-all duration-200 font-medium ${formData.icon === icon ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                      }`}
                   >
-                    {icon === 'medal' && 'Medal'}
-                    {icon === 'trophy' && 'Trophy'}
-                    {icon === 'star' && 'Star'}
+                    {icon === 'medal' && 'Medal'} {icon === 'trophy' && 'Trophy'} {icon === 'star' && 'Star'}
                   </button>
                 ))}
               </div>
             </div>
-
-            <div className="space-y-2">
-              <label className="text-slate-300 text-sm font-medium">Image URL (Optional)</label>
-              <input
-                type="text"
-                value={formData.imageUrl}
-                onChange={e => setFormData({...formData, imageUrl: e.target.value})}
-                placeholder="https://..."
-                className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-slate-300 text-sm font-medium">Deskripsi / Pesan Email</label>
-            <textarea
-              rows={4}
-              value={formData.description}
-              onChange={e => setFormData({...formData, description: e.target.value})}
-              placeholder="Pesan tambahan untuk penerima..."
-              className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500"
+            <InputField
+              id="imageUrl" label="Image URL (Optional)" type="url"
+              value={formData.imageUrl} onChange={v => setFormData(p => ({ ...p, imageUrl: v }))}
+              placeholder="https://..." required={false}
             />
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-slate-700">
+          <InputField
+            id="desc" label="Deskripsi / Pesan Email" type="textarea"
+            value={formData.description} onChange={v => setFormData(p => ({ ...p, description: v }))}
+            placeholder="Pesan tambahan untuk penerima..." required={false}
+          />
+
+          <div className="flex justify-end pt-6 border-t border-white/10">
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+              className="w-full md:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:hover:scale-100 disabled:active:scale-100"
             >
               {loading ? (
                 <>Loading...</>
@@ -286,7 +251,7 @@ export default function AdminCertificate() {
             </button>
           </div>
         </form>
-      </div>
+      </GlassCard>
     </div>
   );
 }

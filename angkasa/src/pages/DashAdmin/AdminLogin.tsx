@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { ref, set, get } from 'firebase/database';
 import { auth, rtdb } from '../../firebase';
-import { InputField } from './AdminCommon';
-import { User, Mail, Lock, UserPlus } from 'lucide-react';
+import { InputField, GlassCard } from './AdminCommon';
+import { User, Mail, Lock, UserPlus, LogIn, ShieldCheck } from 'lucide-react';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;
@@ -65,8 +65,8 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
       console.error('Auth error:', error);
       let errorMessage = 'Terjadi kesalahan';
 
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'Email tidak ditemukan';
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+        errorMessage = 'Email atau password salah';
       } else if (error.code === 'auth/wrong-password') {
         errorMessage = 'Password salah';
       } else if (error.code === 'auth/email-already-in-use') {
@@ -86,18 +86,48 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      <div className="bg-gray-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-md p-8">
+    <div className="fixed inset-0 w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden font-sans">
+      <style>{`
+        @keyframes moveStars {
+          from { background-position: 0 0; }
+          to { background-position: 1000px 500px; }
+        }
+      `}</style>
+
+      {/* Lightweight Animated Star Background */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-40"
+        style={{
+          backgroundImage: `
+            radial-gradient(1px 1px at 20px 30px, #eee 100%, transparent),
+            radial-gradient(1px 1px at 100px 150px, #eee 100%, transparent),
+            radial-gradient(1px 1px at 200px 50px, #eee 100%, transparent),
+            radial-gradient(1px 1px at 300px 200px, #eee 100%, transparent),
+            radial-gradient(1px 1px at 450px 120px, #eee 100%, transparent),
+            radial-gradient(2px 2px at 550px 300px, #fff 100%, transparent),
+            radial-gradient(1px 1px at 600px 50px, #eee 100%, transparent),
+            radial-gradient(1px 1px at 700px 150px, #eee 100%, transparent),
+            radial-gradient(2px 2px at 800px 250px, #fff 100%, transparent)
+          `,
+          backgroundSize: '1000px 1000px',
+          animation: 'moveStars 100s linear infinite',
+        }}
+      />
+
+      <GlassCard className="w-full max-w-md p-8 shadow-2xl relative z-10 border-white/10 !bg-slate-900/60 backdrop-blur-xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">
-            {isLogin ? 'Login Admin' : 'Daftar Admin'}
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl mx-auto flex items-center justify-center mb-4 shadow-lg shadow-blue-600/30 transform rotate-3">
+            <ShieldCheck size={32} className="text-white" />
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
+            {isLogin ? 'Login' : 'Daftar'}
           </h1>
-          <p className="text-gray-400">
-            {isLogin ? 'Masuk ke dashboard admin' : 'Buat akun admin baru'}
+          <p className="text-slate-400 text-sm">
+            {isLogin ? 'Masuk sebagai admin provider' : 'Daftarkan diri Anda sebagai admin baru'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {!isLogin && (
             <InputField
               id="name"
@@ -106,43 +136,33 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
               value={name}
               onChange={setName}
               Icon={User}
+              placeholder="Nama lengkap Anda"
             />
           )}
 
-          <div className="space-y-1">
-            <label htmlFor="email" className="text-sm font-medium text-white flex items-center">
-              <Mail size={16} className="mr-2 text-blue-400" />
-              Email <span className="text-red-400 ml-1">*</span>
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="Masukkan email"
-              className="w-full px-4 py-2 border border-slate-600 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-slate-500 transition duration-150"
-            />
-          </div>
+          <InputField
+            id="email"
+            label="Email"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            Icon={Mail}
+            placeholder="admin@angkasa.id"
+          />
 
-          <div className="space-y-1">
-            <label htmlFor="password" className="text-sm font-medium text-white flex items-center">
-              <Lock size={16} className="mr-2 text-blue-400" />
-              Password <span className="text-red-400 ml-1">*</span>
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="Masukkan password"
-              className="w-full px-4 py-2 border border-slate-600 bg-gray-800 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-slate-500 transition duration-150"
-            />
-          </div>
+          <InputField
+            id="password"
+            label="Password"
+            type="password"
+            value={password}
+            onChange={setPassword}
+            Icon={Lock}
+            placeholder="••••••••"
+          />
 
           {error && (
-            <div className="bg-red-900/50 border border-red-600 text-red-200 p-3 rounded-lg text-sm">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-300 p-3 rounded-xl text-sm flex items-center gap-2 animate-in slide-in-from-top-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
               {error}
             </div>
           )}
@@ -150,19 +170,18 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
           <button
             type="submit"
             disabled={loading || !email || !password || (!isLogin && !name)}
-            className={`w-full py-3 px-4 rounded-lg font-bold text-white transition duration-200 flex items-center justify-center ${
-              loading
-                ? 'bg-gray-600 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-900/50'
-            }`}
+            className={`w-full py-3.5 px-4 rounded-xl font-bold text-white transition-all duration-200 flex items-center justify-center shadow-lg active:scale-95 ${loading
+              ? 'bg-slate-700 cursor-not-allowed text-slate-400'
+              : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 shadow-blue-500/25'
+              }`}
           >
             {loading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
             ) : (
               <>
                 {isLogin ? (
                   <>
-                    <User className="mr-2" size={20} />
+                    <LogIn className="mr-2" size={20} />
                     Masuk
                   </>
                 ) : (
@@ -176,7 +195,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
+        <div className="mt-8 text-center pt-6 border-t border-white/5">
           <button
             onClick={() => {
               setIsLogin(!isLogin);
@@ -185,12 +204,16 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
               setPassword('');
               setName('');
             }}
-            className="text-blue-400 hover:text-blue-300 text-sm"
+            className="text-slate-400 hover:text-white text-sm font-medium transition-colors"
           >
-            {isLogin ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk'}
+            {isLogin ? (
+              <>Belum punya akun? <span className="text-blue-400 hover:text-blue-300 ml-1">Daftar sekarang</span></>
+            ) : (
+              <>Sudah punya akun? <span className="text-blue-400 hover:text-blue-300 ml-1">Masuk sekarang</span></>
+            )}
           </button>
         </div>
-      </div>
+      </GlassCard>
     </div>
   );
 };
