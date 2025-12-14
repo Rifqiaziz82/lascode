@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { List, Bell, Menu, X, LogOut, Award, LayoutDashboard } from 'lucide-react';
+import { List, Menu, X, LogOut, Award, LayoutDashboard, Calendar } from 'lucide-react';
 import { onAuthStateChanged, signOut, updateProfile } from 'firebase/auth';
 import { ref, get } from 'firebase/database';
 
 import { auth, rtdb } from '../../firebase';
 import AdminPanel from './AdminPanel';
 import AdminPost from './AdminPost';
-import AdminNotif from './AdminNotif';
+import AdminEvent from './AdminEvent';
 import AdminLogin from './AdminLogin';
 import AdminCertificate from './AdminCertificate';
 
-type AppRoute = 'dashboard' | 'posts' | 'notifications' | 'certificates';
+type AppRoute = 'dashboard' | 'posts' | 'events' | 'certificates';
 
 const getColorFromUid = (uid: string) => {
   let hash = 0;
@@ -129,7 +129,7 @@ export const AdminDash: React.FC = () => {
     // Simple conditional rendering without animation wrapper
     switch (currentRoute) {
       case 'posts': return <AdminPost />;
-      case 'notifications': return <AdminNotif />;
+      case 'events': return <AdminEvent />;
       case 'certificates': return <AdminCertificate />;
       default: return (
         <AdminPanel
@@ -206,7 +206,7 @@ export const AdminDash: React.FC = () => {
           <div className="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Menu Utama</div>
           <NavItem route="dashboard" Icon={LayoutDashboard} label="Beranda" />
           <NavItem route="posts" Icon={List} label="Postingan & Lomba" />
-          <NavItem route="notifications" Icon={Bell} label="Notifikasi" />
+          <NavItem route="events" Icon={Calendar} label="Event & Seminar" />
           <NavItem route="certificates" Icon={Award} label="Kirim Sertifikat" />
         </nav>
 
@@ -268,7 +268,7 @@ export const AdminDash: React.FC = () => {
           <div className="p-4 space-y-2 flex-1 overflow-y-auto">
             <NavItem route="dashboard" Icon={LayoutDashboard} label="Beranda" />
             <NavItem route="posts" Icon={List} label="Postingan" />
-            <NavItem route="notifications" Icon={Bell} label="Notifikasi" />
+            <NavItem route="events" Icon={Calendar} label="Event & Seminar" />
             <NavItem route="certificates" Icon={Award} label="Kirim Sertifikat" />
           </div>
 

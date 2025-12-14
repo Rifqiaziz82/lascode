@@ -17,7 +17,7 @@ export default function ForumSidebar({ activeView, setActiveView }: ForumSidebar
     return (
         <>
             {/* Desktop Sidebar */}
-            <div className="hidden lg:block w-64 flex-shrink-0">
+            <div className="hidden lg:block w-1/7 flex-shrink-0">
                 <div className="sticky top-24 space-y-6">
                     {/* Main Navigation */}
                     <div className="bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-3 shadow-xl overflow-hidden">
@@ -62,16 +62,6 @@ export default function ForumSidebar({ activeView, setActiveView }: ForumSidebar
                                 );
                             })}
                         </nav>
-                    </div>
-
-                    {/* Banner / Ad / Extra Info place */}
-                    <div className="bg-gradient-to-br from-slate-700/40 to-blue-900/40 backdrop-blur-md rounded-2xl border border-indigo-500/20 p-5 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-                        <h3 className="text-white font-bold text-lg mb-2 relative z-10">Akses Premium</h3>
-                        <p className="text-indigo-200 text-xs mb-4 relative z-10">Dapatkan akses prioritas ke beasiswa eksklusif.</p>
-                        <button className="w-full py-2 bg-slate-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-indigo-900/50 transition-all relative z-10">
-                            Upgrade Sekarang
-                        </button>
                     </div>
                 </div>
             </div>

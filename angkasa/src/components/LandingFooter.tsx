@@ -15,7 +15,7 @@ const LandingFooter = () => {
   const footerLinks = [
     {
       title: "Platform",
-      links: ["Tentang Kami", "Fitur", "Harga", "Karir", "Blog"],
+      links: ["Tentang Kami", "Fitur", "Karir", "Blog"],
     },
     {
       title: "Dukungan",
@@ -23,13 +23,12 @@ const LandingFooter = () => {
         "Pusat Bantuan",
         "Syarat & Ketentuan",
         "Kebijakan Privasi",
-        "Status",
         "Kontak",
       ],
     },
     {
       title: "Komunitas",
-      links: ["Discord", "Event", "Podcast", "Brand Assets", "Newsletter"],
+      links: ["Event","Newsletter"],
     },
   ];
 

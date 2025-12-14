@@ -10,8 +10,10 @@ export interface Post {
   eventDate: Date;
   closingDate: Date;
   registrationLink: string;
-  type: 'lomba' | 'beasiswa';
+  externalLink?: string;
+  type: 'lomba' | 'beasiswa' | 'seminar' | 'acara';
   tags: string[];
+  details?: { title: string; description: string }[];
   createdAt: Date;
   // Extended properties
   comments?: Record<string, any>;

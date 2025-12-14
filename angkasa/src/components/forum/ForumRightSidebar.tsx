@@ -100,7 +100,7 @@ const followUser = async (userIdToFollow: string) => {
     };
 
     return (
-        <div className="hidden lg:block w-80 flex-shrink-0 space-y-6">
+        <div className="hidden lg:block flex-shrink-0 space-y-6">
             <div className='sticky top-24 space-y-6'>
             
             {/* Popular Searches with Gradient Border */}

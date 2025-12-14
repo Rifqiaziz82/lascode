@@ -154,7 +154,7 @@ export default function GroupView() {
   if (!user) return null;
 
   return (
-    <div className="flex h-[calc(100vh-160px)] max-md:h-[calc(100vh-200x)] max-lg:h-[calc(100vh-230px)] bg-slate-800/30 border border-slate-600/30 rounded-xl overflow-hidden">
+    <div className="flex h-[calc(100vh-160px)] max-md:h-[calc(100vh-220px)] max-lg:h-[calc(100vh-230px)] bg-slate-800/30 border border-slate-600/30 rounded-xl overflow-hidden">
       {/* Sidebar List */}
       <div className={`${selectedGroup ? 'hidden md:flex' : 'flex'} w-full md:w-80 flex-col border-r border-slate-600/30`}>
         <div className="p-4 border-b border-slate-600/30">

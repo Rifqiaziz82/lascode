@@ -55,7 +55,7 @@ export default function ForumFeed({
           eventDate: data[key].eventDate || new Date().toISOString(),
           closingDate: data[key].closingDate || new Date().toISOString(),
           likedBy: data[key].likedBy || {},
-        }));
+        })).filter(post => post.type === 'lomba' || post.type === 'beasiswa');
 
         postsArray.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         setPosts(postsArray);
